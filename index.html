@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Manager Pro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/script.js"></script>
+  <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()" async defer></script>
+  <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()" async defer></script>
+</head>
+<body>
+
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar" id="sidebar" style="display:none">
+    <div class="sidebar-logo">PROJECT<span>MANAGER</span></div>
+    <div id="userEmail" class="user-tag">...</div>
+
+    <nav class="nav-group">
+      <div class="nav-label">Navigation</div>
+      <button class="nav-btn active" onclick="setFilter('all', this)">All Projects</button>
+      
+      <div class="nav-label" style="margin-top: 24px;">Status Filter</div>
+      <button class="nav-btn" onclick="setFilter('running', this)">Running</button>
+      <button class="nav-btn" onclick="setFilter('delivered', this)">Delivered</button>
+      <button class="nav-btn" onclick="setFilter('revision', this)">Revision</button>
+      <button class="nav-btn" onclick="setFilter('transferred', this)">Completed</button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="nav-btn" style="color: var(--error);" onclick="handleDisconnect()">Logout Account</button>
+    </div>
+  </aside>
+
+  <!-- Main Workspace -->
+  <main class="main-content">
+    <div id="dashboard" class="dashboard-box" style="display:none">
+      <header class="top-header">
+        <div>
+          <h1 style="font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">Dashboard</h1>
+          <p style="font-size: 14px; color: var(--text-muted); font-weight: 500;">Your centralized mission control.</p>
+        </div>
+        
+        <div class="clock-panel">
+          <span id="clockTime" class="clock-time">00:00:00</span>
+          <span id="clockDate" class="clock-date">Monday, 01 Jan 2024</span>
+        </div>
+      </header>
+
+      <div class="stats-row" id="insightsPanel"></div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <div id="syncBadge" class="sync-badge">
+          <div class="sync-dot"></div>
+          <span id="syncText">SYNCING...</span>
+        </div>
+        <button class="btn-add" onclick="openModal()">+ New Project</button>
+      </div>
+
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 45%;">Project Details</th>
+              <th style="width: 15%;">Timeline</th>
+              <th style="width: 12%;">Net Profit</th>
+              <th style="width: 180px;">Countdown</th>
+              <th style="width: 100px; text-align: center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="projectTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <div id="loadingOverlay">
+    <div class="spinner"></div>
+  </div>
+
+  <div id="loginScreen" style="display:none; width: 100vw; height: 100vh; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 48px; border-radius: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); text-align: center; max-width: 400px; border: 1px solid var(--border);">
+      <div class="sidebar-logo" style="font-size: 28px; margin-bottom: 12px;">PROJECT<span>MANAGER</span></div>
+      <p style="color: var(--text-muted); margin-bottom: 32px; font-size: 15px; font-weight: 500;">Premium freelance workspace.</p>
+      <button class="btn-add" style="width: 100%;" onclick="handleAuthClick()">Sign in with Google</button>
+    </div>
+  </div>
+
+  <div id="modalContainer" style="display:none">
+    <div class="modal-overlay" onclick="handleOverlayClick(event)">
+      <div class="modal">
+        <h2 id="modalTitle" style="font-size: 20px; font-weight: 800; margin-bottom: 24px;">Configure Project</h2>
+        
+        <div class="input-group">
+          <label class="input-label">Project Title</label>
+          <input class="input-field" id="fName" />
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Notes</label>
+          <textarea class="input-field" id="fNotes" rows="3"></textarea>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+          <div><label class="input-label">Start</label><input class="input-field" type="date" id="fStart" /></div>
+          <div><label class="input-label">Deadline</label><input class="input-field" type="datetime-local" id="fDeadline" /></div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+          <div><label class="input-label">Gross Value ($)</label><input class="input-field" type="number" id="fValue" /></div>
+          <div>
+            <label class="input-label">Status</label>
+            <select class="input-field" id="fStatus" onchange="toggleDeliveryFields()">
+              <option value="running">Running</option>
+              <option value="delivered">Delivered</option>
+              <option value="revision">Revision</option>
+              <option value="modification">Modification</option>
+              <option value="transferred">Completed</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="deliverySection" style="display:none; padding: 20px; background: #f8fafc; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border);">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+              <label class="input-label">Your Final Share ($)</label>
+              <input class="input-field" type="number" id="fShare" placeholder="Amount you keep" />
+            </div>
+            <div>
+              <label class="input-label">Site Transfer</label>
+              <div style="display: flex; gap: 16px; height: 44px; align-items: center; font-size: 14px; font-weight: 600;">
+                <label style="cursor:pointer"><input type="radio" name="fTransfer" value="no" checked> No</label>
+                <label style="cursor:pointer"><input type="radio" name="fTransfer" value="yes"> Yes</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+          <button class="btn-action" onclick="closeModal()">Cancel</button>
+          <button class="btn-add" onclick="saveProject()">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
