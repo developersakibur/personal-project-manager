@@ -6,6 +6,10 @@
   <title>Project Manager Pro</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
+  
+  <!-- Image Capture Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  
   <script src="js/script.js"></script>
   <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()" async defer></script>
   <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()" async defer></script>
@@ -18,8 +22,9 @@
     <div id="userEmail" class="user-tag">...</div>
 
     <nav class="nav-group">
-      <div class="nav-label">Navigation</div>
+      <div class="nav-label">Main</div>
       <button class="nav-btn active" onclick="setFilter('all', this)">All Projects</button>
+      <button class="nav-btn" onclick="setFilter('today', this)">Today Tasks</button>
       
       <div class="nav-label" style="margin-top: 24px;">Status Filter</div>
       <button class="nav-btn" onclick="setFilter('running', this)">Running</button>
@@ -29,7 +34,7 @@
     </nav>
 
     <div class="sidebar-footer">
-      <button class="nav-btn" style="color: var(--error);" onclick="handleDisconnect()">Logout Account</button>
+      <button class="btn-logout-sidebar" onclick="handleDisconnect()">Logout Account</button>
     </div>
   </aside>
 
@@ -38,8 +43,8 @@
     <div id="dashboard" class="dashboard-box" style="display:none">
       <header class="top-header">
         <div>
-          <h1 style="font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">Dashboard</h1>
-          <p style="font-size: 14px; color: var(--text-muted); font-weight: 500;">Your centralized mission control.</p>
+          <h1 id="viewTitle" style="font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">Dashboard</h1>
+          <p id="viewSubtitle" style="font-size: 14px; color: var(--text-muted); font-weight: 500;">Manage your project mission control.</p>
         </div>
         
         <div class="clock-panel">
@@ -58,19 +63,21 @@
         <button class="btn-add" onclick="openModal()">+ New Project</button>
       </div>
 
-      <div class="table-card">
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 45%;">Project Details</th>
-              <th style="width: 15%;">Timeline</th>
-              <th style="width: 12%;">Net Profit</th>
-              <th style="width: 180px;">Countdown</th>
-              <th style="width: 100px; text-align: center;">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="projectTableBody"></tbody>
-        </table>
+      <!-- Main Data Area (Table or Report Box) -->
+      <div id="mainDisplayArea">
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 45%;">Project Details</th>
+                <th style="width: 15%;">Timeline</th>
+                <th style="width: 12%;">Net Profit</th>
+                <th style="width: 180px;">Countdown</th>
+              </tr>
+            </thead>
+            <tbody id="projectTableBody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </main>
@@ -90,7 +97,16 @@
   <div id="modalContainer" style="display:none">
     <div class="modal-overlay" onclick="handleOverlayClick(event)">
       <div class="modal">
-        <h2 id="modalTitle" style="font-size: 20px; font-weight: 800; margin-bottom: 24px;">Configure Project</h2>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+          <h2 id="modalTitle" style="font-size: 20px; font-weight: 800;">Configure Project</h2>
+          <div style="display: flex; align-items: center; gap: 12px; background: #eff6ff; padding: 8px 16px; border-radius: 100px; border: 1px solid #dbeafe;">
+            <span style="font-size: 11px; font-weight: 800; color: var(--accent); text-transform: uppercase;">Today Task</span>
+            <label class="switch">
+              <input type="checkbox" id="fToday">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
         
         <div class="input-group">
           <label class="input-label">Project Title</label>
@@ -115,7 +131,6 @@
               <option value="running">Running</option>
               <option value="delivered">Delivered</option>
               <option value="revision">Revision</option>
-              <option value="modification">Modification</option>
               <option value="transferred">Completed</option>
             </select>
           </div>
@@ -137,9 +152,12 @@
           </div>
         </div>
 
-        <div style="display: flex; gap: 12px; justify-content: flex-end;">
-          <button class="btn-action" onclick="closeModal()">Cancel</button>
-          <button class="btn-add" onclick="saveProject()">Save Changes</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+          <button id="btnDelete" class="btn-action" style="color: var(--error); border-color: #fadad7; display: none;" onclick="deleteProjectFromModal()">Delete Project</button>
+          <div style="display: flex; gap: 12px; margin-left: auto;">
+            <button class="btn-action" onclick="closeModal()">Cancel</button>
+            <button class="btn-add" onclick="saveProject()">Update Project</button>
+          </div>
         </div>
       </div>
     </div>
