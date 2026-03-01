@@ -10,7 +10,7 @@
   <!-- Image Capture Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   
-  <script src="js/script.js"></script>
+  <script type="module" src="js/app.js"></script>
   <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()" async defer></script>
   <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()" async defer></script>
 </head>
@@ -23,14 +23,14 @@
 
     <nav class="nav-group">
       <div class="nav-label">Main</div>
-      <button class="nav-btn active" onclick="setFilter('all', this)">All Projects</button>
-      <button class="nav-btn" onclick="setFilter('today', this)">Today Tasks</button>
+      <button id="filter-all" class="nav-btn active" onclick="setFilter('all', this)">All Projects</button>
+      <button id="filter-today" class="nav-btn" onclick="setFilter('today', this)">Today Tasks</button>
+      <button id="filter-account" class="nav-btn" onclick="setFilter('account', this)">Account / Profile</button>
       
       <div class="nav-label" style="margin-top: 24px;">Status Filter</div>
-      <button class="nav-btn" onclick="setFilter('running', this)">Running</button>
-      <button class="nav-btn" onclick="setFilter('delivered', this)">Delivered</button>
-      <button class="nav-btn" onclick="setFilter('revision', this)">Revision</button>
-      <button class="nav-btn" onclick="setFilter('transferred', this)">Completed</button>
+      <button id="filter-running" class="nav-btn" onclick="setFilter('running', this)">Running</button>
+      <button id="filter-revision" class="nav-btn" onclick="setFilter('revision', this)">Revision</button>
+      <button id="filter-delivered" class="nav-btn" onclick="setFilter('delivered', this)">Completed</button>
     </nav>
 
     <div class="sidebar-footer">
@@ -64,19 +64,51 @@
       </div>
 
       <!-- Main Data Area (Table or Report Box) -->
-      <div id="mainDisplayArea">
-        <div class="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 45%;">Project Details</th>
-                <th style="width: 15%;">Timeline</th>
-                <th style="width: 12%;">Net Profit</th>
-                <th style="width: 180px;">Countdown</th>
-              </tr>
-            </thead>
-            <tbody id="projectTableBody"></tbody>
-          </table>
+      <div id="mainDisplayArea"></div>
+    </div>
+
+    <div id="accountView" class="dashboard-box" style="display:none">
+      <header class="top-header">
+        <div>
+          <h1 style="font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">Account Settings</h1>
+          <p style="font-size: 14px; color: var(--text-muted); font-weight: 500;">Manage your profile and performance targets.</p>
+        </div>
+      </header>
+
+      <div class="table-card" style="padding: 40px; max-width: 800px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 40px;">
+          <div class="input-group">
+            <label class="input-label">Full Name</label>
+            <input class="input-field" id="pName" placeholder="e.g. John Doe" onchange="saveProfile()"/>
+          </div>
+          <div class="input-group">
+            <label class="input-label">User ID</label>
+            <input class="input-field" id="pUserId" placeholder="e.g. 16669" onchange="saveProfile()"/>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Team Name</label>
+            <input class="input-field" id="pTeamName" placeholder="e.g. WP Empire" onchange="saveProfile()"/>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Authenticated Google Email</label>
+            <div id="pGoogleEmail" style="padding: 12px; background: #f1f5f9; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--accent); border: 1px solid var(--border);">...</div>
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid var(--border); padding-top: 32px;">
+          <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 8px;">Active Monthly Targets</h3>
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 24px;">Targets set here apply to the current active month and will be archived historically.</p>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px;">
+            <div class="input-group">
+              <label class="input-label">Minimum Target ($)</label>
+              <input type="number" class="input-field" id="pMinTarget" placeholder="1100" onchange="saveProfile()"/>
+            </div>
+            <div class="input-group">
+              <label class="input-label">Team Target ($)</label>
+              <input type="number" class="input-field" id="pTeamTarget" placeholder="2000" onchange="saveProfile()"/>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -86,7 +118,7 @@
     <div class="spinner"></div>
   </div>
 
-  <div id="loginScreen" style="display:none; width: 100vw; height: 100vh; align-items: center; justify-content: center;">
+  <div id="loginScreen" style="display:none; position: fixed; inset: 0; background: var(--bg); align-items: center; justify-content: center; z-index: 1000;">
     <div style="background: white; padding: 48px; border-radius: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); text-align: center; max-width: 400px; border: 1px solid var(--border);">
       <div class="sidebar-logo" style="font-size: 28px; margin-bottom: 12px;">PROJECT<span>MANAGER</span></div>
       <p style="color: var(--text-muted); margin-bottom: 32px; font-size: 15px; font-weight: 500;">Premium freelance workspace.</p>
@@ -129,25 +161,38 @@
             <label class="input-label">Status</label>
             <select class="input-field" id="fStatus" onchange="toggleDeliveryFields()">
               <option value="running">Running</option>
-              <option value="delivered">Delivered</option>
               <option value="revision">Revision</option>
-              <option value="transferred">Completed</option>
+              <option value="delivered">Completed</option>
             </select>
           </div>
         </div>
 
         <div id="deliverySection" style="display:none; padding: 20px; background: #f8fafc; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border);">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div><label class="input-label">Delivery Date</label><input class="input-field" type="date" id="fDeliveryDate" /></div>
             <div>
               <label class="input-label">Your Final Share ($)</label>
               <input class="input-field" type="number" id="fShare" placeholder="Amount you keep" />
             </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
             <div>
               <label class="input-label">Site Transfer</label>
               <div style="display: flex; gap: 16px; height: 44px; align-items: center; font-size: 14px; font-weight: 600;">
                 <label style="cursor:pointer"><input type="radio" name="fTransfer" value="no" checked> No</label>
                 <label style="cursor:pointer"><input type="radio" name="fTransfer" value="yes"> Yes</label>
               </div>
+            </div>
+            <div id="reviewedSection">
+              <label class="input-label">Reviewed?</label>
+              <select class="input-field" id="fReviewed">
+                <option value="no">No Review</option>
+                <option value="1">⭐ 1 Star</option>
+                <option value="2">⭐⭐ 2 Stars</option>
+                <option value="3">⭐⭐⭐ 3 Stars</option>
+                <option value="4">⭐⭐⭐⭐ 4 Stars</option>
+                <option value="5">⭐⭐⭐⭐⭐ 5 Stars</option>
+              </select>
             </div>
           </div>
         </div>
