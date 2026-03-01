@@ -26,8 +26,13 @@
 .report-brand { font-family: 'Orbitron', sans-serif; font-size: 14px; font-weight: 900; color: var(--primary); letter-spacing: 2px; background: #f1f5f9; padding: 6px 16px; border-radius: 6px; }
 .report-brand span { color: var(--accent); }
 
-/* Sync Badge */
-.sync-badge { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: #f8fafc; border-radius: 100px; border: 1px solid var(--border); font-size: 11px; font-weight: 700; color: var(--text-muted); }
+/* Sync Button */
+.sync-btn { display: flex; align-items: center; gap: 8px; padding: 6px 16px; background: #f8fafc; border-radius: 100px; border: 1px solid var(--border); font-size: 11px; font-weight: 700; color: var(--text-muted); cursor: pointer; transition: all 0.2s; outline: none; }
+.sync-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
+.sync-btn:active { transform: translateY(1px); }
+.sync-btn:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
 .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: #cbd5e1; }
 .sync-synced { color: var(--success); }
 .sync-synced .sync-dot { background: var(--success); box-shadow: 0 0 8px var(--success); }
+.sync-failed { color: var(--error); border-color: #fadad7; background: #fef2f2; }
+.sync-failed .sync-dot { background: var(--error); }

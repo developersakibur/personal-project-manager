@@ -58,8 +58,12 @@ export function saveProject() {
   if (!name || !deadline) return alert('Data missing');
   if (status !== 'running' && !deliveryDate) return alert('Delivery Date required');
   
+  // Extract ID from name (e.g., "... || FO5225EAB5885")
+  const parts = name.split(' || ');
+  const generatedId = parts.length > 1 ? parts[parts.length - 1].trim() : Math.random().toString(36).substr(2, 9);
+  
   const data = { 
-    id: state.editId || Math.random().toString(36).substr(2, 9), 
+    id: state.editId || generatedId, 
     name, start: getVal('fStart'), deadline, value: getVal('fValue'), notes: getVal('fNotes'), status, share: getVal('fShare'), 
     transfer: Array.from(document.getElementsByName('fTransfer')).find(r => r.checked)?.value || 'no', 
     todayTask: document.getElementById('fToday')?.checked || false, 

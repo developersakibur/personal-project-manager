@@ -1,6 +1,7 @@
 import { state, getCD } from './modules/state.js';
 import { initGapi, initGis, startupCheck } from './modules/auth.js';
 import { render, downloadTodayReport } from './modules/ui.js';
+import { manualSync } from './modules/drive.js';
 import { 
   setFilter, openModal, saveProject, deleteProjectFromModal, 
   closeModal, toggleDeliveryFields, saveProfile, updateHeaderName,
@@ -27,6 +28,7 @@ window.downloadTodayReport = downloadTodayReport;
 window.exportData = exportData;
 window.importData = importData;
 window.eraseAllData = eraseAllData;
+window.manualSync = manualSync;
 
 // 2. INITIALIZE APP
 document.addEventListener('DOMContentLoaded', () => { 

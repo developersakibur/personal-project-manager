@@ -53,9 +53,10 @@ function renderMonthGroup(monthKey, projects, isCurrent) {
   const del = projects.filter(p => p.status !== 'running');
   const running = projects.filter(p => p.status === 'running');
   const total = del.reduce((acc, p) => acc + (parseFloat(p.share) || parseFloat(p.value)*0.8 || 0), 0);
-  const workload = running.reduce((acc, p) => acc + (parseFloat(p.value) || 0), 0);
+  const workload = running.reduce((acc, p) => acc + ((parseFloat(p.value) || 0) * 0.8), 0);
   const targets = state.appConfig.monthTargets[monthKey] || { min: 1100, team: 2000 };
   const remMin = Math.max(0, targets.min - total);
+  const revenueBDT = (total - targets.min) * 5;
 
   const html = `
     <div class="month-group">
@@ -64,6 +65,7 @@ function renderMonthGroup(monthKey, projects, isCurrent) {
         <div class="header-stats-row">
           <div class="h-stat-item"><span class="h-stat-label">Achieved</span><span class="h-stat-value success">$${total.toFixed(2)}</span></div>
           <div class="h-stat-item"><span class="h-stat-label">Workload</span><span class="h-stat-value" style="color:var(--accent)">$${workload.toFixed(2)}</span></div>
+          <div class="h-stat-item"><span class="h-stat-label">Revenue</span><span class="h-stat-value" style="color:${revenueBDT >= 0 ? '#8b5cf6' : 'var(--error)'}">৳${revenueBDT.toFixed(2)}</span></div>
           <div class="h-stat-item"><span class="h-stat-label">Min Target</span><span class="h-stat-value">$${targets.min}</span></div>
           <div class="h-stat-item"><span class="h-stat-label">To Min</span><span class="h-stat-value ${remMin>0?'error':'success'}">$${remMin.toFixed(2)}</span></div>
         </div>

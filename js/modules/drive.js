@@ -73,10 +73,16 @@ export async function syncToCloud() {
   } catch (e) { setSyncUI('failed'); }
 }
 
+export async function manualSync() {
+  console.log('Manual sync requested...');
+  await syncFromCloud();
+  await syncToCloud();
+}
+
 function setSyncUI(status) {
-  const pill = document.getElementById('syncBadge'), txt = document.getElementById('syncText');
-  if (pill && txt) {
-    pill.className = 'sync-badge ' + (status === 'synced' ? 'sync-synced' : '');
+  const btn = document.getElementById('syncBtn'), txt = document.getElementById('syncText');
+  if (btn && txt) {
+    btn.className = 'sync-btn ' + (status === 'synced' ? 'sync-synced' : (status === 'failed' ? 'sync-failed' : ''));
     txt.textContent = status.toUpperCase();
   }
 }
