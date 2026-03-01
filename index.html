@@ -5,14 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Project Manager Pro</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/modules/base.css">
+  <link rel="stylesheet" href="css/modules/layout.css">
+  <link rel="stylesheet" href="css/modules/dashboard.css">
+  <link rel="stylesheet" href="css/modules/modal.css">
+  <link rel="stylesheet" href="css/modules/stats.css">
   
   <!-- Image Capture Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   
   <script type="module" src="js/app.js"></script>
-  <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()" async defer></script>
-  <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()" async defer></script>
+  <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()" defer></script>
+  <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()" defer></script>
+  <script>
+    // Failsafe: If the app hasn't loaded in 6 seconds, something is wrong.
+    // We'll hide the overlay and show an error message if it's still stuck.
+    setTimeout(() => {
+      const overlay = document.getElementById('loadingOverlay');
+      if (overlay && overlay.style.display !== 'none') {
+        console.warn('App loading is taking too long. Attempting rescue...');
+        overlay.style.display = 'none';
+        
+        // Check if modules loaded by checking a global exposed by app.js
+        if (!window.gapiLoaded) {
+          console.error('Modules failed to load. This usually happens if you open the HTML file directly without a local server (CORS restriction).');
+          alert('Error: Modules blocked. Please use a local server (like VS Code Live Server) to run this application.');
+        }
+      }
+    }, 6000);
+  </script>
 </head>
 <body>
 
@@ -31,6 +52,10 @@
       <button id="filter-running" class="nav-btn" onclick="setFilter('running', this)">Running</button>
       <button id="filter-revision" class="nav-btn" onclick="setFilter('revision', this)">Revision</button>
       <button id="filter-delivered" class="nav-btn" onclick="setFilter('delivered', this)">Completed</button>
+
+      <div class="nav-label" style="margin-top: 24px;">Transfer Filter</div>
+      <button id="filter-transferred" class="nav-btn" onclick="setFilter('transferred', this)">Transferred</button>
+      <button id="filter-not-transferred" class="nav-btn" onclick="setFilter('not-transferred', this)">Not Transferred</button>
     </nav>
 
     <div class="sidebar-footer">
@@ -109,6 +134,14 @@
               <input type="number" class="input-field" id="pTeamTarget" placeholder="2000" onchange="saveProfile()"/>
             </div>
           </div>
+        </div>
+        <div style="border-top: 1px solid var(--border); padding-top: 32px; margin-top: 40px; display: flex; gap: 16px; justify-content: space-between; align-items: center;">
+          <div style="display: flex; gap: 16px;">
+            <button class="btn-add" style="background: #64748b;" onclick="exportData()">Export Backup (JSON)</button>
+            <button class="btn-add" style="background: #94a3b8;" onclick="document.getElementById('importFile').click()">Import Backup (JSON)</button>
+            <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)"/>
+          </div>
+          <button class="btn-action" style="color: var(--error); border-color: #fadad7;" onclick="eraseAllData()">Erase All Data</button>
         </div>
       </div>
     </div>

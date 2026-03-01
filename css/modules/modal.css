@@ -1,0 +1,22 @@
+/* Modals */
+.modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+.modal { background: var(--surface); width: 100%; max-width: 640px; border-radius: 16px; padding: 40px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+
+/* Inputs */
+.input-group { margin-bottom: 20px; }
+.input-label { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; display: block; }
+.input-field { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; outline: none; transition: 0.2s; }
+.input-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+
+/* Buttons */
+.btn-add { background: var(--primary); color: white; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px; border: none; cursor: pointer; transition: 0.2s; }
+.btn-add:hover { background: #1e293b; }
+.btn-action { padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); background: white; cursor: pointer; color: var(--text-muted); font-weight: 600; font-size: 13px; }
+
+/* Toggles */
+.switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; inset: 0; background-color: #cbd5e1; transition: .3s; border-radius: 24px; }
+.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+input:checked + .slider { background-color: var(--accent); }
+input:checked + .slider:before { transform: translateX(20px); }
