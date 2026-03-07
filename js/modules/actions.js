@@ -110,17 +110,24 @@ export function renderAccount() {
   setVal('pUserId', p.userId || ''); 
   setVal('pTeamName', p.teamName || ''); 
   setVal('pMinTarget', t.min); 
-  setVal('pTeamTarget', t.team);
+  setVal('pPreCarry', p.preCarry || 0);
+  setVal('pNewCarry', p.newCarry || 0);
 }
 
 export function saveProfile() {
-  state.appConfig.profile = { name: getVal('pName'), userId: getVal('pUserId'), teamName: getVal('pTeamName') };
+  state.appConfig.profile = { 
+    name: getVal('pName'), 
+    userId: getVal('pUserId'), 
+    teamName: getVal('pTeamName'),
+    preCarry: parseFloat(getVal('pPreCarry')) || 0,
+    newCarry: parseFloat(getVal('pNewCarry')) || 0
+  };
   const key = getCurrentMonthKey(); 
   if (!state.appConfig.monthTargets[key]) state.appConfig.monthTargets[key] = { min: 1100, team: 2000 };
   state.appConfig.monthTargets[key].min = parseFloat(getVal('pMinTarget')) || 0; 
-  state.appConfig.monthTargets[key].team = parseFloat(getVal('pTeamTarget')) || 0;
   localStorage.setItem('app_config', JSON.stringify(state.appConfig)); 
   syncToCloud();
+  render(); // Update insights if in dashboard
 }
 
 export function updateHeaderName(v) { 

@@ -124,14 +124,18 @@
           <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 8px;">Active Monthly Targets</h3>
           <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 24px;">Targets set here apply to the current active month and will be archived historically.</p>
           
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 32px;">
             <div class="input-group">
               <label class="input-label">Minimum Target ($)</label>
               <input type="number" class="input-field" id="pMinTarget" placeholder="1100" onchange="saveProfile()"/>
             </div>
             <div class="input-group">
-              <label class="input-label">Team Target ($)</label>
-              <input type="number" class="input-field" id="pTeamTarget" placeholder="2000" onchange="saveProfile()"/>
+              <label class="input-label">Pre. Carry Bonus (BDT)</label>
+              <input type="number" class="input-field" id="pPreCarry" placeholder="0" onchange="saveProfile()"/>
+            </div>
+            <div class="input-group">
+              <label class="input-label">New Carry Amount (BDT)</label>
+              <input type="number" class="input-field" id="pNewCarry" placeholder="0" onchange="saveProfile()"/>
             </div>
           </div>
         </div>

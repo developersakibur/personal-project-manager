@@ -3,7 +3,7 @@ export const state = {
   editId: null,
   currentFilter: 'all',
   isSyncing: false,
-  appConfig: { headerName: '', monthTargets: {}, profile: { name: '', userId: '', teamName: '' } },
+  appConfig: { headerName: '', monthTargets: {}, profile: { name: '', userId: '', teamName: '', preCarry: 0, newCarry: 0 } },
   tokenClient: null,
   gapiInited: false,
   gisInited: false,

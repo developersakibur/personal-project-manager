@@ -1,11 +1,30 @@
 import { state } from './state.js';
+import { refreshToken } from './auth.js';
+
+async function gapiCall(fn) {
+  try {
+    return await fn();
+  } catch (e) {
+    if (e.status === 401) {
+      console.log('GAPI 401 error, attempting refresh...');
+      try {
+        await refreshToken();
+        return await fn();
+      } catch (refreshError) {
+        console.error('Refresh failed during GAPI call:', refreshError);
+        throw refreshError;
+      }
+    }
+    throw e;
+  }
+}
 
 export async function syncFromCloud() {
   if (state.isSyncing) return;
   state.isSyncing = true;
   console.log('Syncing from cloud...');
   try {
-    const res = await gapi.client.drive.files.list({ spaces: 'appDataFolder', fields: 'files(id, name)' });
+    const res = await gapiCall(() => gapi.client.drive.files.list({ spaces: 'appDataFolder', fields: 'files(id, name)' }));
     if (!res.result || !res.result.files) {
       console.warn('No files found in appDataFolder or result is empty');
       setSyncUI('synced');
@@ -16,10 +35,9 @@ export async function syncFromCloud() {
     if (file) {
       state.driveFileId = file.id;
       console.log('Found cloud file:', state.driveFileId);
-      const content = await gapi.client.drive.files.get({ fileId: state.driveFileId, alt: 'media' });
+      const content = await gapiCall(() => gapi.client.drive.files.get({ fileId: state.driveFileId, alt: 'media' }));
       
       let data = content.result;
-      // If GAPI didn't auto-parse the JSON (often happens with alt=media)
       if (typeof data === 'string') {
         try {
           data = JSON.parse(data);
@@ -67,10 +85,21 @@ export async function syncToCloud() {
       JSON.stringify(payload), 
       '--' + boundary + '--'
     ].join('\r\n');
-    const res = await gapi.client.request({ path: state.driveFileId ? `/upload/drive/v3/files/${state.driveFileId}` : '/upload/drive/v3/files', method: state.driveFileId ? 'PATCH' : 'POST', params: { uploadType: 'multipart' }, headers: { 'Content-Type': 'multipart/related; boundary="' + boundary + '"' }, body: body });
+
+    const res = await gapiCall(() => gapi.client.request({ 
+      path: state.driveFileId ? `/upload/drive/v3/files/${state.driveFileId}` : '/upload/drive/v3/files', 
+      method: state.driveFileId ? 'PATCH' : 'POST', 
+      params: { uploadType: 'multipart' }, 
+      headers: { 'Content-Type': 'multipart/related; boundary="' + boundary + '"' }, 
+      body: body 
+    }));
+
     if (!state.driveFileId && res.result.id) state.driveFileId = res.result.id;
     setSyncUI('synced');
-  } catch (e) { setSyncUI('failed'); }
+  } catch (e) { 
+    console.error('Upload Error:', e);
+    setSyncUI('failed'); 
+  }
 }
 
 export async function manualSync() {

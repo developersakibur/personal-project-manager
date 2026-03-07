@@ -50,24 +50,42 @@ function renderMonthGroup(monthKey, projects, isCurrent) {
   const [y, m] = monthKey.split('-');
   const dateObj = new Date(y, m-1);
   const name = dateObj.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+  
   const del = projects.filter(p => p.status !== 'running');
   const running = projects.filter(p => p.status === 'running');
-  const total = del.reduce((acc, p) => acc + (parseFloat(p.share) || parseFloat(p.value)*0.8 || 0), 0);
+  
+  const achieved = del.reduce((acc, p) => acc + (parseFloat(p.share) || parseFloat(p.value) * 0.8 || 0), 0);
   const workload = running.reduce((acc, p) => acc + ((parseFloat(p.value) || 0) * 0.8), 0);
   const targets = state.appConfig.monthTargets[monthKey] || { min: 1100, team: 2000 };
-  const remMin = Math.max(0, targets.min - total);
-  const revenueBDT = (total - targets.min) * 5;
+  
+  const revenueUSD = achieved - targets.min;
+  const revenueBDT = revenueUSD * 5;
 
   const html = `
     <div class="month-group">
       <div class="month-header-stats">
         <h2 class="month-title">${name} ${isCurrent ? '<span style="font-size:10px; background:var(--accent); color:white; padding:4px 12px; border-radius:100px; margin-left:12px;">ACTIVE</span>' : ''}</h2>
         <div class="header-stats-row">
-          <div class="h-stat-item"><span class="h-stat-label">Achieved</span><span class="h-stat-value success">$${total.toFixed(2)}</span></div>
-          <div class="h-stat-item"><span class="h-stat-label">Workload</span><span class="h-stat-value" style="color:var(--accent)">$${workload.toFixed(2)}</span></div>
-          <div class="h-stat-item"><span class="h-stat-label">Revenue</span><span class="h-stat-value" style="color:${revenueBDT >= 0 ? '#8b5cf6' : 'var(--error)'}">৳${revenueBDT.toFixed(2)}</span></div>
-          <div class="h-stat-item"><span class="h-stat-label">Min Target</span><span class="h-stat-value">$${targets.min}</span></div>
-          <div class="h-stat-item"><span class="h-stat-label">To Min</span><span class="h-stat-value ${remMin>0?'error':'success'}">$${remMin.toFixed(2)}</span></div>
+          <div class="h-stat-item">
+            <span class="h-stat-label">Min Target</span>
+            <span class="h-stat-value">$${targets.min}</span>
+          </div>
+          <div class="h-stat-item">
+            <span class="h-stat-label">Achieved</span>
+            <span class="h-stat-value success">$${achieved.toFixed(2)}</span>
+          </div>
+          <div class="h-stat-item">
+            <span class="h-stat-label">Workload</span>
+            <span class="h-stat-value" style="color:var(--accent)">$${workload.toFixed(2)}</span>
+          </div>
+          <div class="h-stat-item">
+            <span class="h-stat-label">Revenue USD</span>
+            <span class="h-stat-value" style="color:${revenueUSD >= 0 ? 'var(--success)' : 'var(--error)'}">$${revenueUSD.toFixed(2)}</span>
+          </div>
+          <div class="h-stat-item">
+            <span class="h-stat-label">Revenue BDT</span>
+            <span class="h-stat-value" style="color:${revenueBDT >= 0 ? 'var(--success)' : 'var(--error)'}">৳${revenueBDT.toFixed(2)}</span>
+          </div>
         </div>
       </div>
       <div class="table-card">
@@ -97,7 +115,7 @@ function renderMonthGroup(monthKey, projects, isCurrent) {
                   }
                 }
 
-                return `<tr onclick="window.openModal('${p.id}')">
+                return `<tr class="row-${p.status}" onclick="window.openModal('${p.id}')">
                   <td><div class="project-info">
                     <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:4px;">
                       ${cat?`<span class="p-badge" style="background:${cat.color}">${cat.label}</span>`:''}
@@ -166,9 +184,76 @@ function renderTodayView() {
 function renderInsights() {
   const panel = document.getElementById('insightsPanel');
   if (!panel) return;
-  const running = state.projects.filter(p => p.status === 'running').length;
-  const profit = state.projects.reduce((acc, p) => acc + (parseFloat(p.share) || parseFloat(p.value)*0.8 || 0), 0);
-  panel.innerHTML = `<div class="stat-card"><div class="stat-title">Running</div><div class="stat-value">${running}</div></div><div class="stat-card"><div class="stat-title">Lifetime Profit</div><div class="stat-value" style="color:var(--success)">$${profit.toFixed(0)}</div></div>`;
+
+  const now = new Date();
+  const month = now.getMonth(); 
+  const year = now.getFullYear();
+  const groupIdx = Math.floor(month / 3);
+  
+  const groupMonths = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]
+  ];
+  
+  const currentGroup = groupMonths[groupIdx];
+  const groupKeys = currentGroup.map(m => `${year}-${String(m + 1).padStart(2, '0')}`);
+  
+  let totalGroupTarget = 0;
+  currentGroup.forEach(mIdx => {
+    if (mIdx <= month) {
+      const mKey = `${year}-${String(mIdx + 1).padStart(2, '0')}`;
+      const mTarget = state.appConfig.monthTargets[mKey]?.min || 1100;
+      totalGroupTarget += mTarget;
+    }
+  });
+
+  const currentMonthKey = getCurrentMonthKey();
+  const groupProjects = state.projects.filter(p => {
+    const isActive = p.status === 'running' || p.status === 'revision';
+    const pMonth = (isActive && !p.deliveryDate) ? currentMonthKey : p.deliveryDate?.slice(0, 7);
+    return groupKeys.includes(pMonth);
+  });
+
+  const achieved = groupProjects.reduce((acc, p) => {
+    if (p.status === 'running') return acc;
+    return acc + (parseFloat(p.share) || parseFloat(p.value) * 0.8 || 0);
+  }, 0);
+
+  const revenueUSD = achieved - totalGroupTarget;
+  const revenueBDT = revenueUSD * 5;
+  
+  const preCarry = state.appConfig.profile.preCarry || 0;
+  const newCarry = state.appConfig.profile.newCarry || 0;
+  const finalTotalBDT = revenueBDT + preCarry - newCarry;
+
+  const groupNames = ["Jan-Mar", "Apr-Jun", "Jul-Sep", "Oct-Dec"];
+  const groupLabel = groupNames[groupIdx];
+
+  panel.innerHTML = `
+    <div class="stat-card stat-target">
+      <div class="stat-title">Target (${groupLabel})</div>
+      <div class="stat-value">$${totalGroupTarget}</div>
+    </div>
+    <div class="stat-card stat-achieved">
+      <div class="stat-title">Achieved (${groupLabel})</div>
+      <div class="stat-value" style="color:var(--success)">$${achieved.toFixed(2)}</div>
+    </div>
+    <div class="stat-card stat-usd">
+      <div class="stat-title">Revenue USD (${groupLabel})</div>
+      <div class="stat-value" style="color:${revenueUSD >= 0 ? 'var(--success)' : 'var(--error)'}">$${revenueUSD.toFixed(2)}</div>
+    </div>
+    <div class="stat-card stat-bdt">
+      <div class="stat-title">Revenue BDT (${groupLabel})</div>
+      <div style="display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;">
+        <span class="stat-value" style="color:${revenueBDT >= 0 ? 'var(--primary)' : 'var(--error)'}">৳${revenueBDT.toFixed(2)}</span>
+        <span style="font-size:12px; font-weight:700; color:var(--success)">+৳${preCarry}</span>
+        <span style="font-size:12px; font-weight:700; color:var(--error)">-৳${newCarry}</span>
+      </div>
+    </div>
+    <div class="stat-card stat-final">
+      <div class="stat-title">Final Total (BDT)</div>
+      <div class="stat-value" style="color:${finalTotalBDT >= 0 ? '#0891b2' : 'var(--error)'}">৳${finalTotalBDT.toFixed(2)}</div>
+    </div>
+  `;
 }
 
 function updateSidebarCounts() {

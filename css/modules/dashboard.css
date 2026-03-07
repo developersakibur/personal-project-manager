@@ -11,7 +11,19 @@ td { background: #f8fafc; border: none; border-bottom: 1px solid transparent; bo
 td:first-child { border-left: 1px solid transparent; border-radius: 12px 0 0 12px; }
 td:last-child { border-right: 1px solid transparent; border-radius: 0 12px 12px 0; }
 tbody tr { cursor: pointer; }
-tbody tr:hover td { background: white; border-color: var(--border); }
+/* Project Status Row Styles */
+tbody tr.row-running td { background: #eff6ff; }
+tbody tr.row-running td:first-child { border-left: 4px solid #3b82f6; }
+
+tbody tr.row-revision td { background: #fef2f2; }
+tbody tr.row-revision td:first-child { border-left: 4px solid #ef4444; }
+
+tbody tr.row-delivered td { background: #f0fdf4; }
+tbody tr.row-delivered td:first-child { border-left: 4px solid #10b981; }
+
+tbody tr:hover td { background: white !important; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+tbody tr:hover td:first-child { border-left-width: 4px; }
+tbody tr:hover td:last-child { border-right: 1px solid var(--border); }
 
 /* Project Cell */
 .project-info { display: flex; flex-direction: column; gap: 6px; }
