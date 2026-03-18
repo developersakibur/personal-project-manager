@@ -7,7 +7,8 @@ export const state = {
   tokenClient: null,
   gapiInited: false,
   gisInited: false,
-  driveFileId: null
+  driveFileId: null,
+  monthSorts: {} // { '2024-03': { col: 'deadline', dir: 'asc' } }
 };
 
 export const CATEGORIES = [

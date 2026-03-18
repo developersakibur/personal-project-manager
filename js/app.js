@@ -1,11 +1,11 @@
 import { state, getCD } from './modules/state.js';
 import { initGapi, initGis, startupCheck } from './modules/auth.js';
-import { render, downloadTodayReport } from './modules/ui.js';
+import { render, downloadTodayReport, copyWorkReport } from './modules/ui.js';
 import { manualSync } from './modules/drive.js';
 import { 
   setFilter, openModal, saveProject, deleteProjectFromModal, 
   closeModal, toggleDeliveryFields, saveProfile, updateHeaderName,
-  exportData, importData, eraseAllData
+  exportData, importData, eraseAllData, sanitizeData, syncStatusSelect, toggleSort
 } from './modules/actions.js';
 
 // 1. EXPOSE TO WINDOW (For HTML event handlers)
@@ -25,10 +25,13 @@ window.toggleDeliveryFields = toggleDeliveryFields;
 window.saveProfile = saveProfile;
 window.updateHeaderName = updateHeaderName;
 window.downloadTodayReport = downloadTodayReport;
+window.copyWorkReport = copyWorkReport;
 window.exportData = exportData;
 window.importData = importData;
 window.eraseAllData = eraseAllData;
 window.manualSync = manualSync;
+window.syncStatusSelect = syncStatusSelect;
+window.toggleSort = toggleSort;
 
 // 2. INITIALIZE APP
 document.addEventListener('DOMContentLoaded', () => { 
@@ -38,7 +41,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const localData = localStorage.getItem('p_data');
     const localConfig = localStorage.getItem('app_config');
     
-    if (localData) state.projects = JSON.parse(localData); 
+    if (localData) {
+      state.projects = JSON.parse(localData); 
+      sanitizeData();
+    }
     if (localConfig) state.appConfig = JSON.parse(localConfig);
     
     // Start background timers

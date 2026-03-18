@@ -1,15 +1,19 @@
 :root {
-  --primary: #0f172a;
-  --accent: #3b82f6;
-  --bg: #f8fafc;
+  --primary: #0f172a;      /* Slate 900 */
+  --accent: #2563eb;       /* Blue 600 */
+  --bg: #f8fafc;          /* Slate 50 */
   --sidebar: #ffffff;
   --surface: #ffffff;
-  --text: #0f172a;
-  --text-muted: #64748b;
-  --border: #e2e8f0;
-  --success: #10b981;
-  --error: #ef4444;
-  --radius: 12px;
+  --text: #1e293b;         /* Slate 800 */
+  --text-muted: #64748b;   /* Slate 500 */
+  --border: #e2e8f0;       /* Slate 200 */
+  --border-light: #f1f5f9; /* Slate 100 */
+  --success: #059669;      /* Emerald 600 */
+  --error: #dc2626;        /* Red 600 */
+  --warning: #d97706;      /* Amber 600 */
+  --radius: 8px;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }

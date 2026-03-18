@@ -13,9 +13,19 @@
 .btn-logout-sidebar:hover { background: var(--error); color: white; border-color: var(--error); }
 
 /* Main layout */
-.main-content { margin-left: 280px; min-height: 100vh; display: flex; justify-content: center; padding: 40px; }
-.dashboard-box { width: 100%; max-width: 1400px; }
-.top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
-.clock-panel { display: flex; flex-direction: column; align-items: flex-end; }
-.clock-time { font-family: 'Share Tech Mono', monospace; font-size: 28px; font-weight: 700; color: var(--primary); }
-.clock-date { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+.main-content { margin-left: 280px; min-height: 100vh; display: flex; justify-content: center; padding: 48px; }
+.dashboard-box { width: 100%; }
+
+.top-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 48px; padding-bottom: 24px; border-bottom: 1px solid var(--border-light); }
+
+.header-actions { display: flex; align-items: center; gap: 16px; margin-top: 16px; }
+
+.clock-panel { background: white; padding: 12px 24px; border-radius: 16px; border: 1px solid var(--border-light); display: flex; align-items: center; gap: 20px; box-shadow: var(--shadow-sm); }
+.clock-display { display: flex; flex-direction: column; }
+.clock-time { font-family: 'Share Tech Mono', monospace; font-size: 24px; font-weight: 700; color: var(--primary); line-height: 1; letter-spacing: -1px; }
+.clock-date { font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+
+.clock-divider { width: 1px; height: 32px; background: var(--border-light); }
+
+.sync-status-mini { display: flex; flex-direction: column; align-items: flex-end; }
+.sync-label { font-size: 9px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }

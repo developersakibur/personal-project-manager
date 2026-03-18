@@ -1,47 +1,36 @@
 /* Month Groups */
-.month-group { background: white; border-radius: 20px; border: 1px solid var(--border); padding: 32px; margin-bottom: 48px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); }
-.month-header-stats { display: flex; justify-content: space-between; align-items: center; margin: 0; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px; gap: 20px; }
-.month-title { font-size: 22px; font-weight: 800; text-transform: uppercase; color: var(--primary); letter-spacing: -0.5px; white-space: nowrap; }
+.month-group { background: white; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 40px; box-shadow: var(--shadow-sm); overflow: hidden; display: flex; flex-direction: column; }
+
+.month-header-stats { padding: 24px; display: flex; justify-content: space-between; align-items: center; background: #fff; border-bottom: 1px solid var(--border-light); }
+.month-title { font-size: 18px; font-weight: 700; color: var(--primary); letter-spacing: -0.025em; }
+
+.header-stats-row { display: flex; gap: 32px; align-items: center; }
 
 /* Table Styling */
-.table-card { background: white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); margin-top: 0; }
-table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
-th { background: transparent; padding: 12px 16px; border-bottom: 2px solid #f1f5f9; color: var(--text-muted); font-size: 11px; text-align: left; text-transform: uppercase; font-weight: 700; }
-td { background: #f8fafc; border: none; border-bottom: 1px solid transparent; border-top: 1px solid transparent; padding: 20px 16px; transition: all 0.2s; font-size: 14px; vertical-align: middle; }
-td:first-child { border-left: 1px solid transparent; border-radius: 12px 0 0 12px; }
-td:last-child { border-right: 1px solid transparent; border-radius: 0 12px 12px 0; }
+.table-card { border: none; background: transparent; box-shadow: none; border-radius: 0; }
+table { width: 100%; border-collapse: collapse; }
+th { background: #f8fafc; padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: 11px; text-align: left; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em; }
+td { padding: 16px; border-bottom: 1px solid var(--border-light); font-size: 14px; color: var(--text); vertical-align: middle; background: white; transition: background 0.15s ease; }
+
 tbody tr { cursor: pointer; }
-/* Project Status Row Styles */
-tbody tr.row-running td { background: #eff6ff; }
-tbody tr.row-running td:first-child { border-left: 4px solid #3b82f6; }
-
-tbody tr.row-revision td { background: #fef2f2; }
-tbody tr.row-revision td:first-child { border-left: 4px solid #ef4444; }
-
-tbody tr.row-delivered td { background: #f0fdf4; }
-tbody tr.row-delivered td:first-child { border-left: 4px solid #10b981; }
-
-tbody tr:hover td { background: white !important; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-tbody tr:hover td:first-child { border-left-width: 4px; }
-tbody tr:hover td:last-child { border-right: 1px solid var(--border); }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background-color: #f8fafc; }
 
 /* Project Cell */
-.project-info { display: flex; flex-direction: column; gap: 6px; }
-.p-badge { font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 4px 8px; border-radius: 6px; color: white; width: fit-content; }
-.p-title { font-weight: 700; font-size: 15px; color: var(--primary); }
-.p-desc { font-size: 13px; color: var(--text-muted); font-style: italic; line-height: 1.5; }
+.project-info { display: flex; flex-direction: column; gap: 4px; }
+.p-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; background: #f1f5f9; color: #475569; display: inline-flex; align-items: center; border: 1px solid rgba(0,0,0,0.05); }
+.p-title { font-weight: 600; font-size: 14px; color: var(--primary); }
+.p-desc { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
 
 /* Timeline & Profit Cells */
-.timeline-cell { display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 12px; white-space: nowrap; }
-.profit-cell { display: flex; flex-direction: column; gap: 2px; }
-.net-profit { font-size: 16px; font-weight: 800; color: var(--success); }
-.gross-val { font-size: 11px; color: var(--error); text-decoration: line-through; }
+.timeline-cell { display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--text); }
+.profit-cell { display: flex; flex-direction: column; gap: 1px; }
+.net-profit { font-size: 15px; font-weight: 600; color: var(--primary); }
+.gross-val { font-size: 11px; color: var(--text-muted); text-decoration: line-through; opacity: 0.7; }
 
 /* Timer & Delivery Pills */
-.timer-pill, .delivery-pill { display: flex; flex-direction: column; align-items: center; padding: 12px; border-radius: 10px; background: #f1f5f9; width: 100%; min-width: 180px; }
-.timer-pill.active { background: #eff6ff; color: var(--accent); }
-.timer-pill.urgent { background: #fef2f2; color: var(--error); border: 1px solid #fee2e2; }
-.timer-val, .delivery-val { font-family: 'Share Tech Mono', monospace; font-size: 18px; font-weight: 800; }
-.timer-label, .delivery-label { font-size: 9px; font-weight: 800; text-transform: uppercase; margin-top: 4px; opacity: 0.8; }
-.delivery-pill { border-radius: 100px; border: 1px solid var(--border); }
-.delivery-val { font-size: 16px; }
+.timer-pill, .delivery-pill { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 8px; padding: 10px; border-radius: 6px; background: #f8fafc; border: 1px solid var(--border); width: 100%; box-sizing: border-box; }
+.timer-val, .delivery-val { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: var(--primary); }
+.timer-label, .delivery-label { display: none; }
+.delivery-pill { background: #f8fafc; border-color: var(--border); }
+.delivery-pill .delivery-val { color: var(--text-muted); }

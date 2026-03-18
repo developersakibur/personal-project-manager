@@ -19,7 +19,7 @@ export function openModal(id = null) {
   const p = id ? state.projects.find(x => x.id === id) : null;
   const title = document.getElementById('modalTitle');
   const delBtn = document.getElementById('btnDelete');
-  if (title) title.textContent = id ? 'Modify Project' : 'New Mission';
+  if (title) title.textContent = id ? 'Modify Mission' : 'New Mission';
   if (delBtn) delBtn.style.display = id ? 'block' : 'none';
   
   if (p) {
@@ -33,6 +33,9 @@ export function openModal(id = null) {
     setCheck('fToday', p.todayTask); 
     setVal('fReviewed', p.reviewed || 'no'); 
     setVal('fDeliveryDate', p.deliveryDate || '');
+    
+    // Set pill radios
+    document.getElementsByName('fStatusPill').forEach(r => r.checked = r.value === p.status);
     document.getElementsByName('fTransfer').forEach(r => r.checked = r.value === p.transfer);
   } else {
     setVal('fName', ''); 
@@ -45,12 +48,21 @@ export function openModal(id = null) {
     setCheck('fToday', false); 
     setVal('fReviewed', 'no'); 
     setVal('fDeliveryDate', ''); 
-    const transferRadios = document.getElementsByName('fTransfer');
-    if (transferRadios.length > 0) transferRadios[0].checked = true;
+    
+    document.getElementsByName('fStatusPill').forEach(r => r.checked = r.value === 'running');
+    document.getElementsByName('fTransfer').forEach(r => r.checked = r.value === 'no');
   }
   toggleDeliveryFields(); 
   const modal = document.getElementById('modalContainer');
   if (modal) modal.style.display = 'block';
+}
+
+export function syncStatusSelect(val) {
+  const select = document.getElementById('fStatus');
+  if (select) {
+    select.value = val;
+    toggleDeliveryFields();
+  }
 }
 
 export function saveProject() {
@@ -60,10 +72,10 @@ export function saveProject() {
   
   // Extract ID from name (e.g., "... || FO5225EAB5885")
   const parts = name.split(' || ');
-  const generatedId = parts.length > 1 ? parts[parts.length - 1].trim() : Math.random().toString(36).substr(2, 9);
+  const newId = parts.length > 1 ? parts[parts.length - 1].trim() : Math.random().toString(36).substr(2, 9);
   
   const data = { 
-    id: state.editId || generatedId, 
+    id: newId, 
     name, start: getVal('fStart'), deadline, value: getVal('fValue'), notes: getVal('fNotes'), status, share: getVal('fShare'), 
     transfer: Array.from(document.getElementsByName('fTransfer')).find(r => r.checked)?.value || 'no', 
     todayTask: document.getElementById('fToday')?.checked || false, 
@@ -71,14 +83,56 @@ export function saveProject() {
   };
   
   if (state.editId) {
+    // If ID changed, check for conflicts with OTHER projects
+    const duplicate = state.projects.find(p => p.id === newId && p.id !== state.editId);
+    if (duplicate) return alert(`Conflict: The ID "${newId}" is already used by another project: "${duplicate.name}"`);
+
     const idx = state.projects.findIndex(p => p.id === state.editId);
     if (idx !== -1) state.projects[idx] = data;
-  } else state.projects.push(data);
+  } else {
+    // New project: check for conflicts
+    const exists = state.projects.find(p => p.id === newId);
+    if (exists) return alert(`Conflict: A project with ID "${newId}" already exists: "${exists.name}"`);
+    state.projects.push(data);
+  }
   
   localStorage.setItem('p_data', JSON.stringify(state.projects)); 
   syncToCloud(); 
   closeModal(); 
   render();
+}
+
+/**
+ * Repairs existing data conflicts by ensuring all IDs match their name parts
+ * and are globally unique within the array.
+ */
+export function sanitizeData() {
+  let changed = false;
+  const seenIds = new Set();
+  
+  state.projects = state.projects.map(p => {
+    const parts = p.name.split(' || ');
+    let currentId = parts.length > 1 ? parts[parts.length - 1].trim() : p.id;
+    
+    // If ID is duplicate, give it a unique suffix
+    if (seenIds.has(currentId)) {
+      currentId = `${currentId}_${Math.random().toString(36).substr(2, 4)}`;
+      changed = true;
+    }
+    
+    seenIds.add(currentId);
+    if (p.id !== currentId) {
+      p.id = currentId;
+      changed = true;
+    }
+    return p;
+  });
+
+  if (changed) {
+    console.log('Data sanitized: Resolved ID conflicts.');
+    localStorage.setItem('p_data', JSON.stringify(state.projects));
+    syncToCloud();
+  }
 }
 
 export function deleteProjectFromModal() { 
@@ -193,6 +247,21 @@ export function eraseAllData() {
       alert('All data has been erased.');
     }
   }
+}
+
+export function toggleSort(monthKey, col) {
+  if (!state.monthSorts[monthKey]) {
+    state.monthSorts[monthKey] = { col: 'deadline', dir: 'asc' };
+  }
+  
+  const s = state.monthSorts[monthKey];
+  if (s.col === col) {
+    s.dir = s.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    s.col = col;
+    s.dir = 'asc';
+  }
+  render();
 }
 
 // Private helpers
