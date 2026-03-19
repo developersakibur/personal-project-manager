@@ -213,11 +213,9 @@ function renderTodayView() {
   const projectsDeliveredToday = state.projects.filter(p => p.status !== 'running' && p.deliveryDate === todayISO);
   const todayDeliveredValue = projectsDeliveredToday.reduce((acc, p) => acc + (parseFloat(p.share) || parseFloat(p.value) * 0.8 || 0), 0);
   
-  const lastMonthDate = new Date();
-  lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
-  const lastMonthKey = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
-  const lastMonthProjects = state.projects.filter(p => p.status !== 'running' && p.deliveryDate?.startsWith(lastMonthKey));
-  const lastMonthValue = lastMonthProjects.reduce((acc, p) => acc + (parseFloat(p.share) || parseFloat(p.value) * 0.8 || 0), 0);
+  const currentMonthKey = getCurrentMonthKey();
+  const currentMonthProjects = state.projects.filter(p => p.status !== 'running' && p.deliveryDate?.startsWith(currentMonthKey));
+  const currentMonthValue = currentMonthProjects.reduce((acc, p) => acc + (parseFloat(p.share) || parseFloat(p.value) * 0.8 || 0), 0);
   
   const runningProjects = state.projects.filter(p => p.status === 'running');
   const workloadValue = runningProjects.reduce((acc, p) => acc + (parseFloat(p.value) * 0.8 || 0), 0);
@@ -298,8 +296,8 @@ function renderTodayView() {
              </div>
 
              <div class="report-form-row">
-                <span class="report-form-label">04. Prev. Month Total</span>
-                <span class="report-form-field" style="font-weight: 800; color: var(--primary); font-size: 16px;">$${lastMonthValue.toFixed(0)}</span>
+                <span class="report-form-label">04. Delivered Till Now</span>
+                <span class="report-form-field" style="font-weight: 800; color: var(--primary); font-size: 16px;">$${currentMonthValue.toFixed(0)}</span>
              </div>
 
              <div class="report-form-row">
@@ -458,17 +456,14 @@ export function copyWorkReport(btn) {
   const projectsDeliveredToday = state.projects.filter(p => p.status !== 'running' && p.deliveryDate === todayISO);
   const todayVal = projectsDeliveredToday.reduce((acc, p) => acc + (parseFloat(p.share) || parseFloat(p.value) * 0.8 || 0), 0);
   
-  // 4. Delivered Till Now: Last Month's Total
-  const lastMonthDate = new Date();
-  lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
-  const lastMonthKey = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
-  const lastMonthProjects = state.projects.filter(p => p.status !== 'running' && p.deliveryDate?.startsWith(lastMonthKey));
-  const lastMonthVal = lastMonthProjects.reduce((acc, p) => acc + (parseFloat(p.share) || parseFloat(p.value) * 0.8 || 0), 0);
+  const currentMonthKey = getCurrentMonthKey();
+  const currentMonthProjects = state.projects.filter(p => p.status !== 'running' && p.deliveryDate?.startsWith(currentMonthKey));
+  const currentMonthVal = currentMonthProjects.reduce((acc, p) => acc + (parseFloat(p.share) || parseFloat(p.value) * 0.8 || 0), 0);
   
   const running = state.projects.filter(p => p.status === 'running');
   const workloadVal = running.reduce((acc, p) => acc + (parseFloat(p.value) * 0.8 || 0), 0);
 
-  const text = `Daily Work Report\n\nDate: ${dateStr}\n\n01. In Time: ${inTime}\n\n02. Issue Sheet Status: ${issue}\n\n03. Today Delivered: $${todayVal.toFixed(0)}\n\n04. Delivered Till Now: $${lastMonthVal.toFixed(0)}\n\n05. Workload in Hand: $${workloadVal.toFixed(0)}\n\n06. Number of projects: ${String(running.length).padStart(2, '0')}\n\n07. Progress Sheet Status: ${progress}`;
+  const text = `Daily Work Report\n\nDate: ${dateStr}\n\n01. In Time: ${inTime}\n\n02. Issue Sheet Status: ${issue}\n\n03. Today Delivered: $${todayVal.toFixed(0)}\n\n04. Delivered Till Now: $${currentMonthVal.toFixed(0)}\n\n05. Workload in Hand: $${workloadVal.toFixed(0)}\n\n06. Number of projects: ${String(running.length).padStart(2, '0')}\n\n07. Progress Sheet Status: ${progress}`;
 
   navigator.clipboard.writeText(text).then(() => {
     const originalText = btn.textContent;

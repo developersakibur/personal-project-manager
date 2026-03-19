@@ -102,16 +102,9 @@ export async function syncToCloud() {
   }
 }
 
-export async function manualSync() {
-  console.log('Manual sync requested...');
-  await syncFromCloud();
-  await syncToCloud();
-}
-
 function setSyncUI(status) {
-  const btn = document.getElementById('syncBtn'), txt = document.getElementById('syncText');
-  if (btn && txt) {
+  const btn = document.getElementById('syncBtn');
+  if (btn) {
     btn.className = 'sync-btn ' + (status === 'synced' ? 'sync-synced' : (status === 'failed' ? 'sync-failed' : ''));
-    txt.textContent = status.toUpperCase();
   }
 }

@@ -1,7 +1,7 @@
 import { state, getCD } from './modules/state.js';
 import { initGapi, initGis, startupCheck } from './modules/auth.js';
 import { render, downloadTodayReport, copyWorkReport } from './modules/ui.js';
-import { manualSync } from './modules/drive.js';
+import { syncFromCloud, syncToCloud } from './modules/drive.js';
 import { 
   setFilter, openModal, saveProject, deleteProjectFromModal, 
   closeModal, toggleDeliveryFields, saveProfile, updateHeaderName,
@@ -29,7 +29,6 @@ window.copyWorkReport = copyWorkReport;
 window.exportData = exportData;
 window.importData = importData;
 window.eraseAllData = eraseAllData;
-window.manualSync = manualSync;
 window.syncStatusSelect = syncStatusSelect;
 window.toggleSort = toggleSort;
 
