@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Project Manager Pro</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/modules/base.css">
+  <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/modules/layout.css">
   <link rel="stylesheet" href="css/modules/dashboard.css">
   <link rel="stylesheet" href="css/modules/modal.css">
@@ -60,7 +60,6 @@
       <div class="filter-pill-group">
         <button id="filter-all" class="nav-btn active" onclick="setFilter('all', this)">All Projects</button>
         <button id="filter-today" class="nav-btn" onclick="setFilter('today', this)">Today Tasks</button>
-        <button id="filter-account" class="nav-btn" onclick="setFilter('account', this)">Profile</button>
       </div>
       
       <div class="nav-label" style="margin-top: 24px;">Status</div>
@@ -89,62 +88,6 @@
 
       <!-- Main Data Area (Table or Report Box) -->
       <div id="mainDisplayArea"></div>
-    </div>
-
-    <div id="accountView" class="dashboard-box" style="display:none">
-      <header class="account-header">
-        <h1 style="font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">Account Settings</h1>
-        <p style="font-size: 14px; color: var(--text-muted); font-weight: 500;">Manage your profile and performance targets.</p>
-      </header>
-
-      <div class="table-card" style="padding: 40px; max-width: 800px;">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 40px;">
-          <div class="input-group">
-            <label class="input-label">Full Name</label>
-            <input class="input-field" id="pName" placeholder="e.g. John Doe" onchange="saveProfile()"/>
-          </div>
-          <div class="input-group">
-            <label class="input-label">User ID</label>
-            <input class="input-field" id="pUserId" placeholder="e.g. 16669" onchange="saveProfile()"/>
-          </div>
-          <div class="input-group">
-            <label class="input-label">Team Name</label>
-            <input class="input-field" id="pTeamName" placeholder="e.g. WP Empire" onchange="saveProfile()"/>
-          </div>
-          <div class="input-group">
-            <label class="input-label">Authenticated Google Email</label>
-            <div id="pGoogleEmail" style="padding: 12px; background: #f1f5f9; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--accent); border: 1px solid var(--border);">...</div>
-          </div>
-        </div>
-
-        <div style="border-top: 1px solid var(--border); padding-top: 32px;">
-          <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 8px;">Active Monthly Targets</h3>
-          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 24px;">Targets set here apply to the current active month and will be archived historically.</p>
-          
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 32px;">
-            <div class="input-group">
-              <label class="input-label">Minimum Target ($)</label>
-              <input type="number" class="input-field" id="pMinTarget" placeholder="1100" onchange="saveProfile()"/>
-            </div>
-            <div class="input-group">
-              <label class="input-label">Pre. Carry Bonus (BDT)</label>
-              <input type="number" class="input-field" id="pPreCarry" placeholder="0" onchange="saveProfile()"/>
-            </div>
-            <div class="input-group">
-              <label class="input-label">New Carry Amount (BDT)</label>
-              <input type="number" class="input-field" id="pNewCarry" placeholder="0" onchange="saveProfile()"/>
-            </div>
-          </div>
-        </div>
-        <div style="border-top: 1px solid var(--border); padding-top: 32px; margin-top: 40px; display: flex; gap: 16px; justify-content: space-between; align-items: center;">
-          <div style="display: flex; gap: 16px;">
-            <button class="btn-add" style="background: #64748b;" onclick="exportData()">Export Backup (JSON)</button>
-            <button class="btn-add" style="background: #94a3b8;" onclick="document.getElementById('importFile').click()">Import Backup (JSON)</button>
-            <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)"/>
-          </div>
-          <button class="btn-action" style="color: var(--error); border-color: #fadad7;" onclick="eraseAllData()">Erase All Data</button>
-        </div>
-      </div>
     </div>
   </main>
 

@@ -4,7 +4,7 @@ export function render() {
   const mainArea = document.getElementById('mainDisplayArea');
   if (!mainArea) return;
   mainArea.innerHTML = '';
-  if (state.currentFilter === 'today') { renderTodayView(); return; }
+  if (state.currentFilter === 'today' || state.currentFilter === 'account') { renderProfileView(); return; }
   
   const currentKey = getCurrentMonthKey();
   const monthKeys = new Set();
@@ -201,7 +201,7 @@ function renderMonthGroup(monthKey, projects, isCurrent) {
   document.getElementById('mainDisplayArea').insertAdjacentHTML('beforeend', html);
 }
 
-function renderTodayView() {
+function renderProfileView() {
   const filtered = state.projects.filter(p => p.todayTask);
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
@@ -220,114 +220,206 @@ function renderTodayView() {
   const runningProjects = state.projects.filter(p => p.status === 'running');
   const workloadValue = runningProjects.reduce((acc, p) => acc + (parseFloat(p.value) * 0.8 || 0), 0);
 
+  // Account Data
+  const pData = state.appConfig.profile, t = state.appConfig.monthTargets[currentMonthKey] || { min: 1100, team: 2000 };
+  
+  // Format Dynamic Brand (WP <span>EMPIRE</span> style)
+  let brandHTML = 'WP <span>EMPIRE</span>';
+  if (pData.teamName) {
+    const parts = pData.teamName.trim().split(' ');
+    if (parts.length > 1) {
+      const last = parts.pop();
+      brandHTML = `${parts.join(' ')} <span>${last}</span>`;
+    } else {
+      brandHTML = pData.teamName;
+    }
+  }
+
   const html = `
     <style>
+      .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 32px; padding: 40px 20px; align-items: stretch; }
+      .profile-card { background: white; border: 1px solid var(--border); border-radius: 24px; padding: 32px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; flex-direction: column; }
+      .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px; }
+      .card-title { font-size: 18px; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; margin: 0; }
+      .card-accent { width: 8px; height: 24px; background: var(--accent); border-radius: 100px; }
+      
       .report-form-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 20px; }
       .report-form-label { font-size: 13px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; flex: 1; }
       .report-form-field { flex: 1.5; }
       
       .pill-group { display: flex; background: #f1f5f9; padding: 4px; border-radius: 8px; gap: 4px; }
-      .pill-group label { flex: 1; text-align: center; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; transition: 0.2s; color: #64748b; }
+      .pill-group label { flex: 1; text-align: center; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 700; transition: 0.2s; color: #64748b; }
       .pill-group input { display: none; }
-      .pill-group label:has(input:checked) { background: white; color: var(--accent); shadow: 0 2px 4px rgba(0,0,0,0.05); }
+      .pill-group label:has(input:checked) { background: white; color: var(--accent); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
       
       .custom-time-input { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--primary); cursor: pointer; background: white; }
-      .custom-time-input:focus { outline: none; border-color: var(--accent); }
+      
+      .account-input-group { margin-bottom: 20px; }
+      .account-label { display: block; font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 8px; text-transform: uppercase; }
+      .account-field { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-weight: 600; transition: 0.2s; }
+      .account-field:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
     </style>
 
-    <div style="width:100%; display: flex; justify-content: center; gap: 50px; align-items: flex-start; flex-wrap: wrap; padding: 40px 20px;">
-      <!-- Left Column: Graphical Report -->
-      <div style="width:520px">
-        <div id="todayReportBox" class="report-container" style="padding: 40px; border-radius: 24px;">
-          <div class="report-header" style="align-items: center; display: flex; justify-content: space-between; margin-bottom: 30px; padding-bottom: 20px;">
-            <div class="report-title" style="margin: 0; flex: 1; font-size: 24px;">${fullName.toUpperCase()}</div>
-            <div class="report-date" style="text-align: right; white-space: nowrap; margin-left: 20px;">${dateStr} <br/> ${timeStr.toUpperCase()}</div>
-          </div>
-          <div class="report-body">${filtered.map(p => {
-            const shortName = p.name.split(' || ')[0];
-            return `
-            <div class="report-item" style="padding: 14px 0;">
-              <div class="report-p-name">${shortName}</div>
-              <div class="report-p-note">${p.notes||''}</div>
-            </div>`;
-          }).join('')}</div>
-          <div class="report-footer" style="margin-top: 30px; padding-top: 20px;">
-            <div class="report-count">TOTAL TASKS: ${filtered.length}</div>
-            <div class="report-brand">WP <span>EMPIRE</span></div>
+    <div class="profile-grid">
+      <!-- Card 1: Today Tasks Graphical Report -->
+      <div class="profile-card" style="padding: 0; background: transparent; border: none; box-shadow: none;">
+        <div class="report-wrapper" style="flex: 1; display: flex; flex-direction: column;">
+          <div id="todayReportBox" class="report-container" style="padding: 40px; border-radius: 24px; background: white; border: 1px solid var(--border); flex: 1; display: flex; flex-direction: column;">
+            <div class="report-header" style="align-items: center; display: flex; justify-content: space-between; margin-bottom: 30px; padding-bottom: 20px;">
+              <div class="report-title" style="margin: 0; flex: 1; font-size: 24px;">${fullName.toUpperCase()}</div>
+              <div class="report-date" style="text-align: right; white-space: nowrap; margin-left: 20px;">${dateStr} <br/> ${timeStr.toUpperCase()}</div>
+            </div>
+            <div class="report-body" style="flex: 1;">${filtered.map(p => {
+              const shortName = p.name.split(' || ')[0];
+              return `
+              <div class="report-item" style="padding: 14px 0;">
+                <div class="report-p-name">${shortName}</div>
+                <div class="report-p-note">${p.notes||''}</div>
+              </div>`;
+            }).join('')}</div>
+            <div class="report-footer" style="margin-top: 30px; padding-top: 20px;">
+              <div class="report-count">TOTAL TASKS: ${filtered.length}</div>
+              <div class="report-brand">${brandHTML}</div>
+            </div>
           </div>
         </div>
-        <button class="btn-add" style="width:100%; margin-top:24px; height: 50px; border-radius: 12px;" onclick="window.downloadTodayReport()">Download Report Image</button>
+        <button class="btn-add" style="width:100%; margin-top:20px; height: 50px; border-radius: 12px;" onclick="window.downloadTodayReport()">Download Report Image</button>
       </div>
 
-      <!-- Right Column: Professional Work Report Form -->
-      <div style="width:480px">
-        <div class="report-container" style="padding: 40px; border-radius: 24px; background: #fff; border: 1px solid var(--border);">
-          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 32px; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px;">
-             <div style="width: 8px; height: 24px; background: var(--accent); border-radius: 100px;"></div>
-             <h3 style="font-size: 18px; font-weight: 800; color: var(--primary); letter-spacing: -0.5px;">Work Mission Control</h3>
-          </div>
-          
-          <div style="display: flex; flex-direction: column; gap: 8px;">
-             <div class="report-form-row">
-                <span class="report-form-label">Mission Date</span>
-                <span class="report-form-field" style="font-weight: 700; color: var(--primary); font-size: 14px;">${dateStr.replace(/ /g, '/')}</span>
-             </div>
-             
-             <div class="report-form-row">
-                <span class="report-form-label">01. In Time</span>
-                <div class="report-form-field">
-                   <input type="time" id="reportInTime" class="custom-time-input" onclick="this.showPicker()">
-                </div>
-             </div>
-
-             <div class="report-form-row">
-                <span class="report-form-label">02. Issue Status</span>
-                <div class="report-form-field">
-                   <div class="pill-group">
-                      <label><input type="radio" name="reportIssue" value="WIP" checked> WIP</label>
-                      <label><input type="radio" name="reportIssue" value="Clear"> Clear</label>
-                   </div>
-                </div>
-             </div>
-
-             <div class="report-form-row">
-                <span class="report-form-label">03. Delivered (Today)</span>
-                <span class="report-form-field" style="font-weight: 800; color: var(--success); font-size: 16px;">$${todayDeliveredValue.toFixed(0)}</span>
-             </div>
-
-             <div class="report-form-row">
-                <span class="report-form-label">04. Delivered Till Now</span>
-                <span class="report-form-field" style="font-weight: 800; color: var(--primary); font-size: 16px;">$${currentMonthValue.toFixed(0)}</span>
-             </div>
-
-             <div class="report-form-row">
-                <span class="report-form-label">05. Web WIP</span>
-                <span class="report-form-field" style="font-weight: 800; color: #3b82f6; font-size: 16px;">$${workloadValue.toFixed(0)}</span>
-             </div>
-
-             <div class="report-form-row">
-                <span class="report-form-label">06. Active Projects</span>
-                <span class="report-form-field" style="font-weight: 800; color: var(--primary); font-size: 16px;">${String(runningProjects.length).padStart(2, '0')}</span>
-             </div>
-             
-             <div class="report-form-row">
-                <span class="report-form-label">07. Progress Sheet</span>
-                <div class="report-form-field">
-                   <div class="pill-group">
-                      <label><input type="radio" name="reportProgress" value="Updated" checked> Updated</label>
-                      <label><input type="radio" name="reportProgress" value="Not Updated"> Pending</label>
-                   </div>
-                </div>
-             </div>
-          </div>
+      <!-- Card 2: Work Progress (Mission Control) -->
+      <div class="profile-card">
+        <div class="card-header">
+           <div class="card-accent"></div>
+           <h3 class="card-title">Work Mission Control</h3>
         </div>
         
-        <button class="btn-add" style="width:100%; margin-top:24px; height: 50px; border-radius: 12px; background: var(--primary); box-shadow: 0 4px 12px rgba(0,0,0,0.1);" onclick="window.copyWorkReport(this)">
+        <div style="display: flex; flex-direction: column; gap: 4px; flex: 1;">
+           <div class="report-form-row">
+              <span class="report-form-label">Date</span>
+              <span class="report-form-field" style="font-weight: 700; color: var(--primary); font-size: 14px;">${dateStr.replace(/ /g, '/')}</span>
+           </div>
+           
+           <div class="report-form-row">
+              <span class="report-form-label">01. In Time</span>
+              <div class="report-form-field">
+                 <input type="time" id="reportInTime" class="custom-time-input" onclick="this.showPicker()">
+              </div>
+           </div>
+
+           <div class="report-form-row">
+              <span class="report-form-label">02. Issue Sheet Status</span>
+              <div class="report-form-field">
+                 <div class="pill-group">
+                    <label><input type="radio" name="reportIssue" value="WIP" checked> WIP</label>
+                    <label><input type="radio" name="reportIssue" value="Clear"> Clear</label>
+                 </div>
+              </div>
+           </div>
+
+           <div class="report-form-row">
+              <span class="report-form-label">03. Today Delivered</span>
+              <span class="report-form-field" style="font-weight: 800; color: var(--success); font-size: 16px;">$${todayDeliveredValue.toFixed(0)}</span>
+           </div>
+
+           <div class="report-form-row">
+              <span class="report-form-label">04. Delivered Till Now</span>
+              <span class="report-form-field" style="font-weight: 800; color: var(--primary); font-size: 16px;">$${currentMonthValue.toFixed(0)}</span>
+           </div>
+
+           <div class="report-form-row">
+              <span class="report-form-label">05. Workload in Hand</span>
+              <span class="report-form-field" style="font-weight: 800; color: #3b82f6; font-size: 16px;">$${workloadValue.toFixed(0)}</span>
+           </div>
+
+           <div class="report-form-row">
+              <span class="report-form-label">06. Number of projects</span>
+              <span class="report-form-field" style="font-weight: 800; color: var(--primary); font-size: 16px;">${String(runningProjects.length).padStart(2, '0')}</span>
+           </div>
+           
+           <div class="report-form-row">
+              <span class="report-form-label">07. Progress Sheet Status</span>
+              <div class="report-form-field">
+                 <div class="pill-group">
+                    <label><input type="radio" name="reportProgress" value="Updated" checked> Updated</label>
+                    <label><input type="radio" name="reportProgress" value="Not Updated"> Pending</label>
+                 </div>
+              </div>
+           </div>
+
+           <div class="report-form-row">
+              <span class="report-form-label">08. Note</span>
+              <div class="report-form-field">
+                 <input type="text" id="reportNote" class="custom-time-input" placeholder="Optional notes...">
+              </div>
+           </div>
+        </div>
+        
+        <button class="btn-add" style="width:100%; margin-top:24px; height: 50px; border-radius: 12px; background: var(--primary);" onclick="window.copyWorkReport(this)">
           Copy Text Report
         </button>
       </div>
-    </div>`;
+
+      <!-- Card 3: Account Settings -->
+      <div class="profile-card">
+        <div class="card-header">
+           <div class="card-accent" style="background: #64748b;"></div>
+           <h3 class="card-title">Account Settings</h3>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; flex: 1;">
+          <div class="account-input-group">
+            <label class="account-label">Full Name</label>
+            <input class="account-field" id="pName" value="${pData.name || ''}" placeholder="John Doe" onchange="window.saveProfile()"/>
+          </div>
+          <div class="account-input-group">
+            <label class="account-label">User ID</label>
+            <input class="account-field" id="pUserId" value="${pData.userId || ''}" placeholder="16669" onchange="window.saveProfile()"/>
+          </div>
+          <div class="account-input-group">
+            <label class="account-label">Team Name</label>
+            <input class="account-field" id="pTeamName" value="${pData.teamName || ''}" placeholder="WP Empire" onchange="window.saveProfile()"/>
+          </div>
+          <div class="account-input-group">
+            <label class="account-label">Google Email</label>
+            <div style="padding: 10px; background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--accent); overflow: hidden; text-overflow: ellipsis;" id="pGoogleEmail">...</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 16px; border-top: 1px solid #f1f5f9; padding-top: 16px;">
+          <h4 style="font-size: 13px; font-weight: 800; margin-bottom: 16px; color: var(--primary);">Active Monthly Targets</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="account-input-group">
+              <label class="account-label">Min. Target ($)</label>
+              <input type="number" class="account-field" id="pMinTarget" value="${t.min}" onchange="window.saveProfile()"/>
+            </div>
+            <div class="account-input-group">
+              <label class="account-label">Pre. Carry (BDT)</label>
+              <input type="number" class="account-field" id="pPreCarry" value="${pData.preCarry || 0}" onchange="window.saveProfile()"/>
+            </div>
+            <div class="account-input-group">
+              <label class="account-label">New Carry (BDT)</label>
+              <input type="number" class="account-field" id="pNewCarry" value="${pData.newCarry || 0}" onchange="window.saveProfile()"/>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 24px; display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <button class="btn-add" style="background: #64748b; font-size: 12px; height: 40px;" onclick="window.exportData()">Export JSON</button>
+            <button class="btn-add" style="background: #94a3b8; font-size: 12px; height: 40px;" onclick="document.getElementById('importFile').click()">Import JSON</button>
+          </div>
+          <button class="btn-action" style="color: var(--error); border-color: #fadad7; width: 100%; height: 40px; font-size: 12px;" onclick="window.eraseAllData()">Erase All Data</button>
+        </div>
+      </div>
+    </div>
+  `;
   document.getElementById('mainDisplayArea').innerHTML = html;
+  
+  // Set the email after rendering
+  const email = document.getElementById('userEmail')?.textContent;
+  if (email && document.getElementById('pGoogleEmail')) {
+    document.getElementById('pGoogleEmail').textContent = email;
+  }
 }
 
 function renderInsights() {
@@ -428,7 +520,18 @@ function updateSidebarCounts() {
 export async function downloadTodayReport() {
   const box = document.getElementById('todayReportBox');
   if (!box) return;
-  const canvas = await html2canvas(box, { scale: 2 });
+  
+  // Create a clone to handle capturing without visual layout shifts
+  const clone = box.cloneNode(true);
+  clone.style.position = 'fixed';
+  clone.style.top = '-9999px';
+  clone.style.height = 'auto'; // Let content define height
+  clone.style.flex = 'none';
+  document.body.appendChild(clone);
+  
+  const canvas = await html2canvas(clone, { scale: 2 });
+  document.body.removeChild(clone);
+  
   const link = document.createElement('a');
   link.download = `Tasks_${new Date().toISOString().slice(0,10)}.png`;
   link.href = canvas.toDataURL();
@@ -448,6 +551,7 @@ export function copyWorkReport(btn) {
 
   const issue = document.querySelector('input[name="reportIssue"]:checked')?.value || 'WIP';
   const progress = document.querySelector('input[name="reportProgress"]:checked')?.value || 'Updated';
+  const note = document.getElementById('reportNote')?.value || '';
   
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }).replace(/ /g, '/');
@@ -463,7 +567,11 @@ export function copyWorkReport(btn) {
   const running = state.projects.filter(p => p.status === 'running');
   const workloadVal = running.reduce((acc, p) => acc + (parseFloat(p.value) * 0.8 || 0), 0);
 
-  const text = `Daily Work Report\n\nDate: ${dateStr}\n\n01. In Time: ${inTime}\n\n02. Issue Sheet Status: ${issue}\n\n03. Today Delivered: $${todayVal.toFixed(0)}\n\n04. Delivered Till Now: $${currentMonthVal.toFixed(0)}\n\n05. Workload in Hand: $${workloadVal.toFixed(0)}\n\n06. Number of projects: ${String(running.length).padStart(2, '0')}\n\n07. Progress Sheet Status: ${progress}`;
+  let text = `Daily Work Report\n\nDate: ${dateStr}\n\n01. In Time: ${inTime}\n\n02. Issue Sheet Status: ${issue}\n\n03. Today Delivered: $${todayVal.toFixed(0)}\n\n04. Delivered Till Now: $${currentMonthVal.toFixed(0)}\n\n05. Workload in Hand: $${workloadVal.toFixed(0)}\n\n06. Number of projects: ${String(running.length).padStart(2, '0')}\n\n07. Progress Sheet Status: ${progress}`;
+  
+  if (note.trim()) {
+    text += `\n\n08. Note: ${note}`;
+  }
 
   navigator.clipboard.writeText(text).then(() => {
     const originalText = btn.textContent;

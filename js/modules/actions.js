@@ -6,12 +6,7 @@ export function setFilter(f, btn) {
   state.currentFilter = f;
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  const isAcc = f === 'account';
-  const dash = document.getElementById('dashboard');
-  const accView = document.getElementById('accountView');
-  if (dash) dash.style.display = isAcc ? 'none' : 'block';
-  if (accView) accView.style.display = isAcc ? 'block' : 'none';
-  if (isAcc) renderAccount(); else render();
+  render();
 }
 
 export function openModal(id = null) {
@@ -110,11 +105,11 @@ export function sanitizeData() {
   let changed = false;
   const seenIds = new Set();
   
+  // 1. Sanitize Project IDs
   state.projects = state.projects.map(p => {
     const parts = p.name.split(' || ');
     let currentId = parts.length > 1 ? parts[parts.length - 1].trim() : p.id;
     
-    // If ID is duplicate, give it a unique suffix
     if (seenIds.has(currentId)) {
       currentId = `${currentId}_${Math.random().toString(36).substr(2, 4)}`;
       changed = true;
@@ -128,9 +123,19 @@ export function sanitizeData() {
     return p;
   });
 
+  // 2. Backfill Missing Monthly Targets
+  state.projects.forEach(p => {
+    const monthKey = p.status === 'running' ? getCurrentMonthKey() : p.deliveryDate?.slice(0, 7);
+    if (monthKey && !state.appConfig.monthTargets[monthKey]) {
+      state.appConfig.monthTargets[monthKey] = { min: 1100, team: 2000 };
+      changed = true;
+    }
+  });
+
   if (changed) {
-    console.log('Data sanitized: Resolved ID conflicts.');
+    console.log('Data sanitized: Resolved ID conflicts and backfilled missing targets.');
     localStorage.setItem('p_data', JSON.stringify(state.projects));
+    localStorage.setItem('app_config', JSON.stringify(state.appConfig));
     syncToCloud();
   }
 }
