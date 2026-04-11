@@ -9,6 +9,17 @@ export function setFilter(f, btn) {
   render();
 }
 
+export function setQuarter(val) {
+  const [year, qIdx] = val.split('-').map(Number);
+  state.selectedQuarter = { year, qIdx };
+  render();
+}
+
+export function setTargetQuarter(val) {
+  state.targetQuarter = val;
+  render();
+}
+
 export function openModal(id = null) {
   state.editId = id; 
   const p = id ? state.projects.find(x => x.id === id) : null;
@@ -123,17 +134,8 @@ export function sanitizeData() {
     return p;
   });
 
-  // 2. Backfill Missing Monthly Targets
-  state.projects.forEach(p => {
-    const monthKey = p.status === 'running' ? getCurrentMonthKey() : p.deliveryDate?.slice(0, 7);
-    if (monthKey && !state.appConfig.monthTargets[monthKey]) {
-      state.appConfig.monthTargets[monthKey] = { min: 1100, team: 2000 };
-      changed = true;
-    }
-  });
-
   if (changed) {
-    console.log('Data sanitized: Resolved ID conflicts and backfilled missing targets.');
+    console.log('Data sanitized: Resolved ID conflicts.');
     localStorage.setItem('p_data', JSON.stringify(state.projects));
     localStorage.setItem('app_config', JSON.stringify(state.appConfig));
     syncToCloud();
@@ -164,29 +166,38 @@ export function toggleDeliveryFields() {
 }
 
 export function renderAccount() {
-  const p = state.appConfig.profile, key = getCurrentMonthKey(), t = state.appConfig.monthTargets[key] || { min: 1100, team: 2000 };
+  const p = state.appConfig.profile, now = new Date();
+  const qKey = state.targetQuarter || `${now.getFullYear()}-${Math.floor(now.getMonth() / 3)}`;
+  const qCfg = state.appConfig.quarterConfigs?.[qKey] || { min: 3300, preCarry: 0, newCarry: 0 };
+
   setVal('pName', p.name || ''); 
   setVal('pUserId', p.userId || ''); 
   setVal('pTeamName', p.teamName || ''); 
-  setVal('pMinTarget', t.min); 
-  setVal('pPreCarry', p.preCarry || 0);
-  setVal('pNewCarry', p.newCarry || 0);
+  setVal('pMinTarget', qCfg.min); 
+  setVal('pPreCarry', qCfg.preCarry);
+  setVal('pNewCarry', qCfg.newCarry);
 }
 
 export function saveProfile() {
   state.appConfig.profile = { 
     name: getVal('pName'), 
     userId: getVal('pUserId'), 
-    teamName: getVal('pTeamName'),
+    teamName: getVal('pTeamName')
+  };
+  
+  const now = new Date();
+  const qKey = state.targetQuarter || `${now.getFullYear()}-${Math.floor(now.getMonth() / 3)}`;
+  
+  if (!state.appConfig.quarterConfigs) state.appConfig.quarterConfigs = {};
+  state.appConfig.quarterConfigs[qKey] = {
+    min: parseFloat(getVal('pMinTarget')) || 0,
     preCarry: parseFloat(getVal('pPreCarry')) || 0,
     newCarry: parseFloat(getVal('pNewCarry')) || 0
   };
-  const key = getCurrentMonthKey(); 
-  if (!state.appConfig.monthTargets[key]) state.appConfig.monthTargets[key] = { min: 1100, team: 2000 };
-  state.appConfig.monthTargets[key].min = parseFloat(getVal('pMinTarget')) || 0; 
+
   localStorage.setItem('app_config', JSON.stringify(state.appConfig)); 
   syncToCloud();
-  render(); // Update insights if in dashboard
+  render(); 
 }
 
 export function updateHeaderName(v) { 
@@ -241,7 +252,7 @@ export function eraseAllData() {
   if (confirm('CRITICAL ACTION: This will permanently delete ALL projects and reset your settings. This cannot be undone unless you have a backup. Continue?')) {
     if (confirm('Are you ABSOLUTELY sure? All data will be wiped from this device and the cloud.')) {
       state.projects = [];
-      state.appConfig = { headerName: '', monthTargets: {}, profile: { name: '', userId: '', teamName: '' } };
+      state.appConfig = { headerName: '', quarterConfigs: {}, profile: { name: '', userId: '', teamName: '' } };
       
       localStorage.setItem('p_data', JSON.stringify(state.projects));
       localStorage.setItem('app_config', JSON.stringify(state.appConfig));

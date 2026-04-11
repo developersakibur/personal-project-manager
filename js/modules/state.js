@@ -2,8 +2,14 @@ export const state = {
   projects: [],
   editId: null,
   currentFilter: 'all',
+  selectedQuarter: null, // { year: 2026, qIdx: 1 } (0=Jan-Mar, 1=Apr-Jun, 2=Jul-Sep, 3=Oct-Dec)
+  targetQuarter: null, // For account settings quarter selection (e.g. "2026-1")
   isSyncing: false,
-  appConfig: { headerName: '', monthTargets: {}, profile: { name: '', userId: '', teamName: '', preCarry: 0, newCarry: 0 } },
+  appConfig: { 
+    headerName: '', 
+    quarterConfigs: {}, // { '2026-1': { min: 3300, preCarry: 0, newCarry: 0 } }
+    profile: { name: '', userId: '', teamName: '', preCarry: 0, newCarry: 0 } 
+  },
   tokenClient: null,
   gapiInited: false,
   gisInited: false,

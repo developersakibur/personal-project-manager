@@ -3,6 +3,11 @@ import { state, CATEGORIES, getCD, getCurrentMonthKey } from './state.js';
 export function render() {
   const mainArea = document.getElementById('mainDisplayArea');
   if (!mainArea) return;
+  
+  // Update Quarter Dropdown
+  renderQuarterSelect();
+  renderInsights();
+
   mainArea.innerHTML = '';
   if (state.currentFilter === 'today' || state.currentFilter === 'account') { renderProfileView(); return; }
   
@@ -37,8 +42,49 @@ export function render() {
       renderMonthGroup(monthKey, filtered, isCurrent);
     }
   });
-  renderInsights();
   updateSidebarCounts();
+}
+
+function renderQuarterSelect() {
+  const select = document.getElementById('quarterSelect');
+  if (!select) return;
+
+  const startYear = 2025, startQ = 3; // Oct-Dec 2025
+  const now = new Date(), currentYear = now.getFullYear(), currentQ = Math.floor(now.getMonth() / 3);
+  
+  if (!state.selectedQuarter) {
+    state.selectedQuarter = { year: currentYear, qIdx: currentQ };
+  }
+
+  // Find latest quarter with data
+  let latestYear = currentYear, latestQ = currentQ;
+  state.projects.forEach(p => {
+    const dateStr = p.deliveryDate || p.deadline;
+    if (dateStr) {
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        const y = d.getFullYear(), q = Math.floor(d.getMonth() / 3);
+        if (y > latestYear || (y === latestYear && q > latestQ)) {
+          latestYear = y; latestQ = q;
+        }
+      }
+    }
+  });
+
+  const qNames = ["Jan – Mar", "Apr – Jun", "Jul – Sep", "Oct – Dec"];
+  const quarters = [];
+  let y = startYear, q = startQ;
+  
+  while (y < latestYear || (y === latestYear && q <= latestQ)) {
+    quarters.push({ y, q });
+    q++; if (q > 3) { q = 0; y++; }
+  }
+
+  select.innerHTML = quarters.reverse().map(item => {
+    const val = `${item.y}-${item.q}`;
+    const isSelected = state.selectedQuarter.year === item.y && state.selectedQuarter.qIdx === item.q;
+    return `<option value="${val}" ${isSelected ? 'selected' : ''}>${qNames[item.q]} ${item.y}</option>`;
+  }).join('');
 }
 
 function getSortIndicator(monthKey, col) {
@@ -82,9 +128,15 @@ function renderMonthGroup(monthKey, projects, isCurrent) {
   
   const achieved = del.reduce((acc, p) => acc + (parseFloat(p.share) || parseFloat(p.value) * 0.8 || 0), 0);
   const workload = running.reduce((acc, p) => acc + ((parseFloat(p.value) || 0) * 0.8), 0);
-  const targets = state.appConfig.monthTargets[monthKey] || { min: 1100, team: 2000 };
   
-  const revenueUSD = achieved - targets.min;
+  // Calculate dynamic monthly target from quarterly config
+  const [year, month] = monthKey.split('-').map(Number);
+  const qIdx = Math.floor((month - 1) / 3);
+  const qKey = `${year}-${qIdx}`;
+  const qCfg = state.appConfig.quarterConfigs?.[qKey] || { min: 3300 };
+  const monthlyMin = qCfg.min / 3;
+  
+  const revenueUSD = achieved - monthlyMin;
   const revenueBDT = revenueUSD * 5;
 
   const html = `
@@ -98,7 +150,7 @@ function renderMonthGroup(monthKey, projects, isCurrent) {
         <div class="header-stats-row">
           <div class="h-stat-item">
             <span class="h-stat-label">Minimum</span>
-            <span class="h-stat-value">$${targets.min}</span>
+            <span class="h-stat-value">$${monthlyMin.toFixed(0)}</span>
           </div>
           <div class="h-stat-item">
             <span class="h-stat-label">Achieved</span>
@@ -220,10 +272,43 @@ function renderProfileView() {
   const runningProjects = state.projects.filter(p => p.status === 'running');
   const workloadValue = runningProjects.reduce((acc, p) => acc + (parseFloat(p.value) * 0.8 || 0), 0);
 
-  // Account Data
-  const pData = state.appConfig.profile, t = state.appConfig.monthTargets[currentMonthKey] || { min: 1100, team: 2000 };
+  // Quarter Selection for Config
+  const startYear = 2025, startQ = 3; // Oct-Dec 2025
+  const currentYear = now.getFullYear(), currentQ = Math.floor(now.getMonth() / 3);
   
-  // Format Dynamic Brand (WP <span>EMPIRE</span> style)
+  // Find latest quarter with data
+  let latestYear = currentYear, latestQ = currentQ;
+  state.projects.forEach(p => {
+    const dateStr = p.deliveryDate || p.deadline;
+    if (dateStr) {
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        const y = d.getFullYear(), q = Math.floor(d.getMonth() / 3);
+        if (y > latestYear || (y === latestYear && q > latestQ)) {
+          latestYear = y; latestQ = q;
+        }
+      }
+    }
+  });
+
+  const qNames = ["Jan – Mar", "Apr – Jun", "Jul – Sep", "Oct – Dec"];
+  const targetQKey = state.targetQuarter || `${currentYear}-${currentQ}`;
+  const qCfg = state.appConfig.quarterConfigs?.[targetQKey] || { min: 3300, preCarry: 0, newCarry: 0 };
+  
+  const quartersArr = [];
+  let tempY = startYear, tempQ = startQ;
+  while (tempY < latestYear || (tempY === latestYear && tempQ <= latestQ)) {
+    quartersArr.push({ y: tempY, q: tempQ });
+    tempQ++; if (tempQ > 3) { tempQ = 0; tempY++; }
+  }
+
+  const qOptions = quartersArr.reverse().map(item => {
+    const val = `${item.y}-${item.q}`;
+    return `<option value="${val}" ${val === targetQKey ? 'selected' : ''}>${qNames[item.q]} ${item.y}</option>`;
+  }).join('');
+
+  const pData = state.appConfig.profile;
+  // Format Dynamic Brand
   let brandHTML = 'WP <span>EMPIRE</span>';
   if (pData.teamName) {
     const parts = pData.teamName.trim().split(' ');
@@ -258,6 +343,7 @@ function renderProfileView() {
       .account-label { display: block; font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 8px; text-transform: uppercase; }
       .account-field { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-weight: 600; transition: 0.2s; }
       .account-field:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+      .target-month-select { margin-bottom: 16px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-weight: 700; color: var(--accent); cursor: pointer; width: 100%; outline: none; }
     </style>
 
     <div class="profile-grid">
@@ -386,25 +472,33 @@ function renderProfileView() {
         </div>
 
         <div style="margin-top: 16px; border-top: 1px solid #f1f5f9; padding-top: 16px;">
-          <h4 style="font-size: 13px; font-weight: 800; margin-bottom: 16px; color: var(--primary);">Active Monthly Targets</h4>
+          <h4 style="font-size: 13px; font-weight: 800; margin-bottom: 16px; color: var(--primary);">Quarterly Targets & Carry</h4>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
             <div class="account-input-group">
-              <label class="account-label">Min. Target ($)</label>
-              <input type="number" class="account-field" id="pMinTarget" value="${t.min}" onchange="window.saveProfile()"/>
+              <label class="account-label">Target Quarter</label>
+              <select id="pTargetQuarter" class="target-month-select" style="margin-bottom:0;" onchange="window.setTargetQuarter(this.value)">
+                 ${qOptions}
+              </select>
             </div>
             <div class="account-input-group">
+              <label class="account-label">Min. Target ($)</label>
+              <input type="number" class="account-field" id="pMinTarget" value="${qCfg.min}" onchange="window.saveProfile()"/>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="account-input-group">
               <label class="account-label">Pre. Carry (BDT)</label>
-              <input type="number" class="account-field" id="pPreCarry" value="${pData.preCarry || 0}" onchange="window.saveProfile()"/>
+              <input type="number" class="account-field" id="pPreCarry" value="${qCfg.preCarry || 0}" onchange="window.saveProfile()"/>
             </div>
             <div class="account-input-group">
               <label class="account-label">New Carry (BDT)</label>
-              <input type="number" class="account-field" id="pNewCarry" value="${pData.newCarry || 0}" onchange="window.saveProfile()"/>
+              <input type="number" class="account-field" id="pNewCarry" value="${qCfg.newCarry || 0}" onchange="window.saveProfile()"/>
             </div>
           </div>
         </div>
 
         <div style="margin-top: 24px; display: flex; flex-direction: column; gap: 12px;">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div style="grid-template-columns: 1fr 1fr; display: grid; gap: 12px;">
             <button class="btn-add" style="background: #64748b; font-size: 12px; height: 40px;" onclick="window.exportData()">Export JSON</button>
             <button class="btn-add" style="background: #94a3b8; font-size: 12px; height: 40px;" onclick="document.getElementById('importFile').click()">Import JSON</button>
           </div>
@@ -427,29 +521,33 @@ function renderInsights() {
   if (!panel) return;
 
   const now = new Date();
-  const month = now.getMonth(); 
-  const year = now.getFullYear();
-  const groupIdx = Math.floor(month / 3);
+  const currentQYear = now.getFullYear();
+  const currentQIdx = Math.floor(now.getMonth() / 3);
+
+  if (!state.selectedQuarter) {
+    state.selectedQuarter = { year: currentQYear, qIdx: currentQIdx };
+  }
   
-  const groupMonths = [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]
-  ];
-  
-  const currentGroup = groupMonths[groupIdx];
-  const groupKeys = currentGroup.map(m => `${year}-${String(m + 1).padStart(2, '0')}`);
+  const { year, qIdx } = state.selectedQuarter;
+  const qKey = `${year}-${qIdx}`;
+  const qCfg = state.appConfig.quarterConfigs?.[qKey] || { min: 3300, preCarry: 0, newCarry: 0 };
+
+  const groupMonths = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]];
+  const selectedGroup = groupMonths[qIdx];
+  const groupKeys = selectedGroup.map(m => `${year}-${String(m + 1).padStart(2, '0')}`);
   
   let totalGroupTarget = 0;
-  currentGroup.forEach(mIdx => {
-    if (mIdx <= month) {
-      const mKey = `${year}-${String(mIdx + 1).padStart(2, '0')}`;
-      const mTarget = state.appConfig.monthTargets[mKey]?.min || 1100;
-      totalGroupTarget += mTarget;
+  selectedGroup.forEach(mIdx => {
+    // Only add target if it's not a future month relative to "today"
+    // OR if we are looking at a past year
+    if (year < currentQYear || (year === currentQYear && mIdx <= now.getMonth())) {
+      totalGroupTarget += (qCfg.min / 3);
     }
   });
 
-  const currentMonthKey = getCurrentMonthKey();
   const groupProjects = state.projects.filter(p => {
     const isActive = p.status === 'running' || p.status === 'revision';
+    const currentMonthKey = getCurrentMonthKey();
     const pMonth = (isActive && !p.deliveryDate) ? currentMonthKey : p.deliveryDate?.slice(0, 7);
     return groupKeys.includes(pMonth);
   });
@@ -462,17 +560,17 @@ function renderInsights() {
   const revenueUSD = achieved - totalGroupTarget;
   const revenueBDT = revenueUSD * 5;
   
-  const preCarry = state.appConfig.profile.preCarry || 0;
-  const newCarry = state.appConfig.profile.newCarry || 0;
+  const preCarry = qCfg.preCarry || 0;
+  const newCarry = qCfg.newCarry || 0;
   const finalTotalBDT = revenueBDT + preCarry - newCarry;
 
   const groupNames = ["Jan-Mar", "Apr-Jun", "Jul-Sep", "Oct-Dec"];
-  const groupLabel = groupNames[groupIdx];
+  const groupLabel = groupNames[qIdx];
 
   panel.innerHTML = `
     <div class="stat-card stat-target">
-      <div class="stat-title">Target (${groupLabel})</div>
-      <div class="stat-value">$${totalGroupTarget}</div>
+      <div class="stat-title">Target (${groupLabel} ${year}) ${year === currentQYear && qIdx === currentQIdx ? '' : '<span style="color:var(--error); font-size:9px;">HISTORY</span>'}</div>
+      <div class="stat-value">$${totalGroupTarget.toFixed(0)}</div>
     </div>
     <div class="stat-card stat-achieved">
       <div class="stat-title">Achieved (${groupLabel})</div>

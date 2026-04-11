@@ -3,7 +3,7 @@ import { initGapi, initGis, startupCheck } from './modules/auth.js';
 import { render, downloadTodayReport, copyWorkReport } from './modules/ui.js';
 import { syncFromCloud, syncToCloud } from './modules/drive.js';
 import { 
-  setFilter, openModal, saveProject, deleteProjectFromModal, 
+  setFilter, setQuarter, setTargetQuarter, openModal, saveProject, deleteProjectFromModal, 
   closeModal, toggleDeliveryFields, saveProfile, updateHeaderName,
   exportData, importData, eraseAllData, sanitizeData, syncStatusSelect, toggleSort
 } from './modules/actions.js';
@@ -15,6 +15,8 @@ window.handleAuthClick = () => state.tokenClient.requestAccessToken({ prompt: 'c
 window.handleDisconnect = () => { if (confirm('Sign out?')) { localStorage.removeItem('google_token'); location.reload(); } };
 
 window.setFilter = setFilter;
+window.setQuarter = setQuarter;
+window.setTargetQuarter = setTargetQuarter;
 window.render = render;
 window.openModal = openModal;
 window.saveProject = saveProject;
@@ -34,7 +36,7 @@ window.toggleSort = toggleSort;
 
 // 2. INITIALIZE APP
 document.addEventListener('DOMContentLoaded', () => { 
-  console.log('DOM Content Loaded. Initializing application...');
+  window.appStarted = true;
   try {
     // Load local cache immediately for perceived performance
     const localData = localStorage.getItem('p_data');
@@ -84,10 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }, 1000); 
     
-    // Initial render with local data
-    console.log('Performing initial render...');
     render();
-    console.log('Initial render complete.');
   } catch (err) {
     console.error('Critical initialization error:', err);
     // Hide overlay so user can at least see the broken state or error
