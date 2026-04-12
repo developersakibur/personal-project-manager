@@ -9,6 +9,7 @@
 
 .input-field { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 500; font-family: inherit; outline: none; transition: all 0.2s; background: #fff; color: var(--primary); }
 .input-field:focus { border-color: var(--accent); background: #fff; }
+.date-preview-text { font-size: 11px; color: var(--accent); font-weight: 700; margin-top: 4px; font-family: 'Share Tech Mono', monospace; opacity: 0.8; }
 
 /* Pill Radio Groups within Modal */
 .modal-pill-group { display: flex; background: #f1f5f9; padding: 3px; border-radius: 8px; gap: 3px; width: 100%; }

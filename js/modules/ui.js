@@ -1,5 +1,19 @@
 import { state, CATEGORIES, getCD, getCurrentMonthKey } from './state.js';
 
+export function getPaymentStatus(p) {
+  return p.paymentStatus || 'due';
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '-';
+  // Handle both YYYY-MM-DD and YYYY-MM-DDTHH:mm formats
+  const datePart = dateStr.split('T')[0];
+  const parts = datePart.split('-');
+  if (parts.length !== 3) return dateStr; 
+  const [year, month, day] = parts;
+  return `${day}/${month}/${year}`;
+}
+
 export function render() {
   const mainArea = document.getElementById('mainDisplayArea');
   if (!mainArea) return;
@@ -26,18 +40,27 @@ export function render() {
       return pMonth === monthKey;
     });
 
+    // Apply Search Query Filter
+    if (state.searchQuery) {
+      filtered = filtered.filter(p => p.name.toLowerCase().includes(state.searchQuery));
+    }
+
     // Apply specific sidebar filters
     if (state.currentFilter !== 'all') {
       if (state.currentFilter === 'transferred') {
         filtered = filtered.filter(p => p.transfer === 'yes');
       } else if (state.currentFilter === 'not-transferred') {
         filtered = filtered.filter(p => p.transfer === 'no');
+      } else if (state.currentFilter === 'paid') {
+        filtered = filtered.filter(p => getPaymentStatus(p) === 'paid');
+      } else if (state.currentFilter === 'due') {
+        filtered = filtered.filter(p => getPaymentStatus(p) === 'due');
       } else {
         filtered = filtered.filter(p => p.status === state.currentFilter);
       }
     }
 
-    const showEmptyCurrent = isCurrent && state.currentFilter === 'all';
+    const showEmptyCurrent = isCurrent && state.currentFilter === 'all' && !state.searchQuery;
     if (filtered.length > 0 || showEmptyCurrent) {
       renderMonthGroup(monthKey, filtered, isCurrent);
     }
@@ -226,14 +249,15 @@ function renderMonthGroup(monthKey, projects, isCurrent) {
                     <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:4px;">
                       ${cat?`<span class="p-badge" style="color:${cat.color}; border-color:${cat.color}20; background:${cat.color}10">${cat.label}</span>`:''}
                       ${p.todayTask ? `<span class="p-badge" style="color:#0891b2; border-color:#0891b220; background:#0891b210">TODAY</span>` : ''}
-                      ${p.transfer === 'yes' ? `<span class="p-badge" style="color:#7c3aed; border-color:#7c3aed20; background:#7c3aed10">TRANSFERRED</span>` : `<span class="p-badge" style="color:var(--error); border-color:var(--error)20; background:var(--error)10">NOT TRANSFERRED</span>`}
+                      ${getPaymentStatus(p) === 'paid' ? `<span class="p-badge" style="color:var(--success); border-color:var(--success)20; background:var(--success)10">PAID</span>` : `<span class="p-badge" style="color:var(--error); border-color:var(--error)20; background:var(--error)10">DUE</span>`}
+                      ${p.transfer === 'yes' ? `<span class="p-badge" style="color:#6366f1; border-color:#6366f120; background:#6366f110">TRANSFERRED</span>` : `<span class="p-badge" style="color:var(--warning); border-color:var(--warning)20; background:var(--warning)10">PENDING</span>`}
                       ${p.reviewed && p.reviewed!=='no'?`<span class="p-badge" style="color:var(--warning); border-color:var(--warning)20; background:var(--warning)10">★ ${p.reviewed}</span>`:''}
                     </div>
                     <div class="p-title">${p.name}</div>
                     ${p.todayTask ? `<div class="p-desc">${p.notes||''}</div>` : ''}
                   </div></td>
-                  <td style="text-align: center; color: var(--text-muted); font-weight: 500;">${p.start||'-'}</td>
-                  <td style="text-align: center; color: var(--primary); font-weight: 700;">${p.deadline?.slice(0,10)||'-'}</td>
+                  <td style="text-align: center; color: var(--text-muted); font-weight: 500;">${formatDate(p.start)}</td>
+                  <td style="text-align: center; color: var(--primary); font-weight: 700;">${formatDate(p.deadline)}</td>
                   <td style="text-align: center;">
                     <span style="font-size:11px; color:var(--text-muted); font-weight:700; background: var(--bg); padding: 4px 10px; border-radius: 6px; text-transform: uppercase;">
                       ${durationDays} Days
@@ -243,7 +267,10 @@ function renderMonthGroup(monthKey, projects, isCurrent) {
                   <td style="text-align: center; color: var(--primary); font-weight: 800; font-size: 15px;">$${net.toFixed(0)}</td>
                   <td style="padding-right: 24px;">${p.status==='running'?`<div class="timer-pill" style="${timerStyle}" data-deadline="${p.deadline}" data-start="${p.start}">
                     <span class="timer-val">${cd?`${cd.d}d ${cd.h}h ${cd.m}m ${cd.s}s`:'OVER'}</span>
-                  </div>`:`<div class="delivery-pill"><span class="delivery-val">${p.deliveryDate}</span></div>`}</td>
+                  </div>`:`<div class="delivery-pill">
+                    <span class="delivery-val">${formatDate(p.deliveryDate)}</span>
+                    ${p.paymentDate ? `<span style="margin: 0 4px; opacity: 0.5;">-</span><span class="delivery-val" style="color:var(--success)">${formatDate(p.paymentDate)}</span>` : ''}
+                  </div>`}</td>
                 </tr>`
               }).join('')}
           </tbody>
@@ -256,7 +283,7 @@ function renderMonthGroup(monthKey, projects, isCurrent) {
 function renderProfileView() {
   const filtered = state.projects.filter(p => p.todayTask);
   const now = new Date();
-  const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+  const dateStr = now.toLocaleDateString('en-GB'); // DD/MM/YYYY
   const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true });
   const fullName = state.appConfig.profile.name || state.appConfig.headerName || 'MANAGER';
   
@@ -382,7 +409,7 @@ function renderProfileView() {
         <div style="display: flex; flex-direction: column; gap: 4px; flex: 1;">
            <div class="report-form-row">
               <span class="report-form-label">Date</span>
-              <span class="report-form-field" style="font-weight: 700; color: var(--primary); font-size: 14px;">${dateStr.replace(/ /g, '/')}</span>
+              <span class="report-form-field" style="font-weight: 700; color: var(--primary); font-size: 14px;">${dateStr}</span>
            </div>
            
            <div class="report-form-row">
@@ -546,7 +573,7 @@ function renderInsights() {
   });
 
   const groupProjects = state.projects.filter(p => {
-    const isActive = p.status === 'running' || p.status === 'revision';
+    const isActive = p.status === 'running';
     const currentMonthKey = getCurrentMonthKey();
     const pMonth = (isActive && !p.deliveryDate) ? currentMonthKey : p.deliveryDate?.slice(0, 7);
     return groupKeys.includes(pMonth);
@@ -600,8 +627,9 @@ function updateSidebarCounts() {
     all: state.projects.length, 
     today: state.projects.filter(p => p.todayTask).length, 
     running: state.projects.filter(p => p.status === 'running').length, 
-    revision: state.projects.filter(p => p.status === 'revision').length, 
     delivered: state.projects.filter(p => p.status === 'delivered').length,
+    paid: state.projects.filter(p => getPaymentStatus(p) === 'paid').length,
+    due: state.projects.filter(p => getPaymentStatus(p) === 'due').length,
     transferred: state.projects.filter(p => p.transfer === 'yes').length,
     notTransferred: state.projects.filter(p => p.transfer === 'no').length
   };
@@ -609,10 +637,11 @@ function updateSidebarCounts() {
   setVal('filter-all', `All Projects (${c.all})`);
   setVal('filter-today', `Today Tasks (${c.today})`);
   setVal('filter-running', `Running (${c.running})`);
-  setVal('filter-revision', `Revision (${c.revision})`);
   setVal('filter-delivered', `Completed (${c.delivered})`);
+  setVal('filter-paid', `Paid (${c.paid})`);
+  setVal('filter-due', `Due (${c.due})`);
   setVal('filter-transferred', `Transferred (${c.transferred})`);
-  setVal('filter-not-transferred', `Not Transferred (${c.notTransferred})`);
+  setVal('filter-not-transferred', `Pending (${c.notTransferred})`);
 }
 
 export async function downloadTodayReport() {
@@ -652,7 +681,7 @@ export function copyWorkReport(btn) {
   const note = document.getElementById('reportNote')?.value || '';
   
   const now = new Date();
-  const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }).replace(/ /g, '/');
+  const dateStr = now.toLocaleDateString('en-GB'); 
   
   const todayISO = now.toISOString().slice(0, 10);
   const projectsDeliveredToday = state.projects.filter(p => p.status !== 'running' && p.deliveryDate === todayISO);

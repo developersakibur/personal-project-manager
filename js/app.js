@@ -3,8 +3,8 @@ import { initGapi, initGis, startupCheck } from './modules/auth.js';
 import { render, downloadTodayReport, copyWorkReport } from './modules/ui.js';
 import { syncFromCloud, syncToCloud } from './modules/drive.js';
 import { 
-  setFilter, setQuarter, setTargetQuarter, openModal, saveProject, deleteProjectFromModal, 
-  closeModal, toggleDeliveryFields, saveProfile, updateHeaderName,
+  setFilter, handleSearch, setQuarter, setTargetQuarter, openModal, saveProject, deleteProjectFromModal, 
+  closeModal, toggleDeliveryFields, togglePaymentDate, updatePaymentMinDate, saveProfile, updateHeaderName,
   exportData, importData, eraseAllData, sanitizeData, syncStatusSelect, toggleSort
 } from './modules/actions.js';
 
@@ -15,6 +15,7 @@ window.handleAuthClick = () => state.tokenClient.requestAccessToken({ prompt: 'c
 window.handleDisconnect = () => { if (confirm('Sign out?')) { localStorage.removeItem('google_token'); location.reload(); } };
 
 window.setFilter = setFilter;
+window.handleSearch = handleSearch;
 window.setQuarter = setQuarter;
 window.setTargetQuarter = setTargetQuarter;
 window.render = render;
@@ -24,6 +25,8 @@ window.deleteProjectFromModal = deleteProjectFromModal;
 window.closeModal = closeModal;
 window.handleOverlayClick = (e) => { if (e.target.className === 'modal-overlay') window.closeModal(); };
 window.toggleDeliveryFields = toggleDeliveryFields;
+window.togglePaymentDate = togglePaymentDate;
+window.updatePaymentMinDate = updatePaymentMinDate;
 window.saveProfile = saveProfile;
 window.updateHeaderName = updateHeaderName;
 window.downloadTodayReport = downloadTodayReport;
@@ -53,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const now = new Date();
       const ct = document.getElementById('clockTime'), cd = document.getElementById('clockDate');
       if (ct) ct.textContent = now.toLocaleTimeString('en-GB', { hour12: false });
-      if (cd) cd.textContent = now.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' });
+      if (cd) cd.textContent = now.toLocaleDateString('en-GB');
       
       // Update live countdowns in table
       if (state.currentFilter !== 'today' && state.currentFilter !== 'account') {

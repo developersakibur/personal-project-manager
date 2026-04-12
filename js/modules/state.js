@@ -2,6 +2,7 @@ export const state = {
   projects: [],
   editId: null,
   currentFilter: 'all',
+  searchQuery: '',
   selectedQuarter: null, // { year: 2026, qIdx: 1 } (0=Jan-Mar, 1=Apr-Jun, 2=Jul-Sep, 3=Oct-Dec)
   targetQuarter: null, // For account settings quarter selection (e.g. "2026-1")
   isSyncing: false,
@@ -19,7 +20,6 @@ export const state = {
 
 export const CATEGORIES = [
   { id: 'running', label: 'Running', color: '#3b82f6' },
-  { id: 'revision', label: 'Revision', color: '#ef4444' },
   { id: 'delivered', label: 'Completed', color: '#10b981' }
 ];
 

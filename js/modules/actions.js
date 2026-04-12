@@ -9,6 +9,11 @@ export function setFilter(f, btn) {
   render();
 }
 
+export function handleSearch(query) {
+  state.searchQuery = query.trim().toLowerCase();
+  render();
+}
+
 export function setQuarter(val) {
   const [year, qIdx] = val.split('-').map(Number);
   state.selectedQuarter = { year, qIdx };
@@ -20,8 +25,20 @@ export function setTargetQuarter(val) {
   render();
 }
 
+let fpStart, fpDeadline, fpDelivery, fpPayment;
+
+function initFlatpickr() {
+  if (fpStart) return;
+  const common = { dateFormat: "d/m/Y", allowInput: true, disableMobile: true };
+  fpStart = flatpickr("#fStart", { ...common, onChange: () => { updateDeliveryBounds(); } });
+  fpDeadline = flatpickr("#fDeadline", { ...common, enableTime: true, dateFormat: "d/m/Y H:i", onChange: () => { updateDeliveryBounds(); } });
+  fpDelivery = flatpickr("#fDeliveryDate", { ...common, onChange: () => { window.updatePaymentMinDate(); } });
+  fpPayment = flatpickr("#fPaymentDate", common);
+}
+
 export function openModal(id = null) {
   state.editId = id; 
+  initFlatpickr();
   const p = id ? state.projects.find(x => x.id === id) : null;
   const title = document.getElementById('modalTitle');
   const delBtn = document.getElementById('btnDelete');
@@ -30,37 +47,80 @@ export function openModal(id = null) {
   
   if (p) {
     setVal('fName', p.name); 
-    setVal('fStart', p.start); 
-    setVal('fDeadline', p.deadline.slice(0,16)); 
+    fpStart.setDate(p.start);
+    fpDeadline.setDate(p.deadline);
     setVal('fValue', p.value); 
     setVal('fNotes', p.notes); 
     setVal('fStatus', p.status); 
     setVal('fShare', p.share); 
     setCheck('fToday', p.todayTask); 
     setVal('fReviewed', p.reviewed || 'no'); 
-    setVal('fDeliveryDate', p.deliveryDate || '');
+    fpDelivery.setDate(p.deliveryDate || '');
+    
+    // Set payment fields
+    const payStatus = p.paymentStatus || 'due';
+    document.getElementsByName('fPayment').forEach(r => r.checked = r.value === payStatus);
+    fpPayment.setDate(p.paymentDate || '');
     
     // Set pill radios
     document.getElementsByName('fStatusPill').forEach(r => r.checked = r.value === p.status);
     document.getElementsByName('fTransfer').forEach(r => r.checked = r.value === p.transfer);
   } else {
     setVal('fName', ''); 
-    setVal('fStart', new Date().toISOString().slice(0,10)); 
-    setVal('fDeadline', ''); 
+    fpStart.setDate(new Date());
+    fpDeadline.setDate(null);
     setVal('fValue', ''); 
     setVal('fNotes', ''); 
     setVal('fStatus', 'running'); 
     setVal('fShare', ''); 
     setCheck('fToday', false); 
     setVal('fReviewed', 'no'); 
-    setVal('fDeliveryDate', ''); 
+    fpDelivery.setDate(null);
+    fpPayment.setDate(null);
+    document.getElementsByName('fPayment').forEach(r => r.checked = r.value === 'due');
     
     document.getElementsByName('fStatusPill').forEach(r => r.checked = r.value === 'running');
     document.getElementsByName('fTransfer').forEach(r => r.checked = r.value === 'no');
   }
-  toggleDeliveryFields(); 
+  toggleDeliveryFields();
+  togglePaymentDate();
+  updateDeliveryBounds();
   const modal = document.getElementById('modalContainer');
   if (modal) modal.style.display = 'block';
+}
+
+export function updateDeliveryBounds() {
+  if (fpDelivery && fpStart && fpDeadline) {
+    const min = fpStart.selectedDates[0];
+    const max = fpDeadline.selectedDates[0];
+    if (min) fpDelivery.set('minDate', min);
+    if (max) fpDelivery.set('maxDate', max);
+  }
+}
+
+export function togglePaymentDate() {
+  const isPaid = Array.from(document.getElementsByName('fPayment')).find(r => r.checked)?.value === 'paid';
+  const sec = document.getElementById('paymentDateSection');
+  if (sec) sec.style.display = isPaid ? 'flex' : 'none';
+  
+  if (isPaid) {
+    updatePaymentMinDate();
+    
+    // Auto-calculate +15 days if the field is empty
+    if (fpPayment && !fpPayment.input.value && fpDelivery.selectedDates[0]) {
+      const d = new Date(fpDelivery.selectedDates[0]);
+      d.setDate(d.getDate() + 15);
+      fpPayment.setDate(d);
+    }
+  }
+}
+
+export function updatePaymentMinDate() {
+  if (fpDelivery && fpDelivery.selectedDates[0] && fpPayment) {
+    const d = new Date(fpDelivery.selectedDates[0]);
+    d.setDate(d.getDate() + 15);
+    fpPayment.set('minDate', d);
+  }
 }
 
 export function syncStatusSelect(val) {
@@ -72,9 +132,27 @@ export function syncStatusSelect(val) {
 }
 
 export function saveProject() {
-  const name = getVal('fName'), deadline = getVal('fDeadline'), status = getVal('fStatus'), deliveryDate = getVal('fDeliveryDate');
+  const name = getVal('fName'), status = getVal('fStatus');
+  const start = (fpStart && fpStart.selectedDates[0]) ? fpStart.formatDate(fpStart.selectedDates[0], "Y-m-d") : "";
+  const deadline = (fpDeadline && fpDeadline.selectedDates[0]) ? fpDeadline.formatDate(fpDeadline.selectedDates[0], "Y-m-dTH:i:s") : "";
+  const deliveryDate = (fpDelivery && fpDelivery.selectedDates[0]) ? fpDelivery.formatDate(fpDelivery.selectedDates[0], "Y-m-d") : "";
+  const paymentDate = (fpPayment && fpPayment.selectedDates[0]) ? fpPayment.formatDate(fpPayment.selectedDates[0], "Y-m-d") : "";
+
   if (!name || !deadline) return alert('Data missing');
-  if (status !== 'running' && !deliveryDate) return alert('Delivery Date required');
+  
+  const paymentStatus = Array.from(document.getElementsByName('fPayment')).find(r => r.checked)?.value || 'due';
+
+  if (status !== 'running') {
+    if (!deliveryDate) return alert('Delivery Date required');
+    if (paymentStatus === 'paid') {
+      if (!paymentDate) return alert('Payment Date required');
+      
+      const dDate = fpDelivery.selectedDates[0];
+      const pDate = fpPayment.selectedDates[0];
+      const diffDays = Math.floor((pDate - dDate) / 864e5);
+      if (diffDays < 15) return alert('Payment Date must be at least 15 days after Delivery Date');
+    }
+  }
   
   // Extract ID from name (e.g., "... || FO5225EAB5885")
   const parts = name.split(' || ');
@@ -82,8 +160,10 @@ export function saveProject() {
   
   const data = { 
     id: newId, 
-    name, start: getVal('fStart'), deadline, value: getVal('fValue'), notes: getVal('fNotes'), status, share: getVal('fShare'), 
+    name, start, deadline, value: getVal('fValue'), notes: getVal('fNotes'), status, share: getVal('fShare'), 
     transfer: Array.from(document.getElementsByName('fTransfer')).find(r => r.checked)?.value || 'no', 
+    paymentStatus,
+    paymentDate,
     todayTask: document.getElementById('fToday')?.checked || false, 
     reviewed: getVal('fReviewed'), deliveryDate 
   };
@@ -135,7 +215,6 @@ export function sanitizeData() {
   });
 
   if (changed) {
-    console.log('Data sanitized: Resolved ID conflicts.');
     localStorage.setItem('p_data', JSON.stringify(state.projects));
     localStorage.setItem('app_config', JSON.stringify(state.appConfig));
     syncToCloud();
