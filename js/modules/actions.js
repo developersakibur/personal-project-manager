@@ -25,20 +25,8 @@ export function setTargetQuarter(val) {
   render();
 }
 
-let fpStart, fpDeadline, fpDelivery, fpPayment;
-
-function initFlatpickr() {
-  if (fpStart) return;
-  const common = { dateFormat: "d/m/Y", allowInput: true, disableMobile: true };
-  fpStart = flatpickr("#fStart", { ...common, onChange: () => { updateDeliveryBounds(); } });
-  fpDeadline = flatpickr("#fDeadline", { ...common, enableTime: true, dateFormat: "d/m/Y H:i", onChange: () => { updateDeliveryBounds(); } });
-  fpDelivery = flatpickr("#fDeliveryDate", { ...common, onChange: () => { window.updatePaymentMinDate(); } });
-  fpPayment = flatpickr("#fPaymentDate", common);
-}
-
 export function openModal(id = null) {
   state.editId = id; 
-  initFlatpickr();
   const p = id ? state.projects.find(x => x.id === id) : null;
   const title = document.getElementById('modalTitle');
   const delBtn = document.getElementById('btnDelete');
@@ -47,36 +35,36 @@ export function openModal(id = null) {
   
   if (p) {
     setVal('fName', p.name); 
-    fpStart.setDate(p.start);
-    fpDeadline.setDate(p.deadline);
+    setVal('field_start_date', p.start);
+    setVal('field_deadline_date', p.deadline ? p.deadline.slice(0, 16) : '');
     setVal('fValue', p.value); 
     setVal('fNotes', p.notes); 
     setVal('fStatus', p.status); 
     setVal('fShare', p.share); 
     setCheck('fToday', p.todayTask); 
     setVal('fReviewed', p.reviewed || 'no'); 
-    fpDelivery.setDate(p.deliveryDate || '');
+    setVal('field_delivery_date', p.deliveryDate || '');
     
     // Set payment fields
     const payStatus = p.paymentStatus || 'due';
     document.getElementsByName('fPayment').forEach(r => r.checked = r.value === payStatus);
-    fpPayment.setDate(p.paymentDate || '');
+    setVal('field_paid_date', p.paymentDate || '');
     
     // Set pill radios
     document.getElementsByName('fStatusPill').forEach(r => r.checked = r.value === p.status);
     document.getElementsByName('fTransfer').forEach(r => r.checked = r.value === p.transfer);
   } else {
     setVal('fName', ''); 
-    fpStart.setDate(new Date());
-    fpDeadline.setDate(null);
+    setVal('field_start_date', new Date().toISOString().slice(0, 10));
+    setVal('field_deadline_date', '');
     setVal('fValue', ''); 
     setVal('fNotes', ''); 
     setVal('fStatus', 'running'); 
     setVal('fShare', ''); 
     setCheck('fToday', false); 
     setVal('fReviewed', 'no'); 
-    fpDelivery.setDate(null);
-    fpPayment.setDate(null);
+    setVal('field_delivery_date', '');
+    setVal('field_paid_date', '');
     document.getElementsByName('fPayment').forEach(r => r.checked = r.value === 'due');
     
     document.getElementsByName('fStatusPill').forEach(r => r.checked = r.value === 'running');
@@ -90,11 +78,13 @@ export function openModal(id = null) {
 }
 
 export function updateDeliveryBounds() {
-  if (fpDelivery && fpStart && fpDeadline) {
-    const min = fpStart.selectedDates[0];
-    const max = fpDeadline.selectedDates[0];
-    if (min) fpDelivery.set('minDate', min);
-    if (max) fpDelivery.set('maxDate', max);
+  const startVal = getVal('field_start_date');
+  const deadlineVal = getVal('field_deadline_date');
+  const deliveryInput = document.getElementById('field_delivery_date');
+  
+  if (deliveryInput) {
+    if (startVal) deliveryInput.setAttribute('min', startVal);
+    if (deadlineVal) deliveryInput.setAttribute('max', deadlineVal.slice(0, 10));
   }
 }
 
@@ -107,19 +97,24 @@ export function togglePaymentDate() {
     updatePaymentMinDate();
     
     // Auto-calculate +15 days if the field is empty
-    if (fpPayment && !fpPayment.input.value && fpDelivery.selectedDates[0]) {
-      const d = new Date(fpDelivery.selectedDates[0]);
+    const payDateInput = document.getElementById('field_paid_date');
+    const deliveryDateVal = getVal('field_delivery_date');
+    if (payDateInput && !payDateInput.value && deliveryDateVal) {
+      const d = new Date(deliveryDateVal);
       d.setDate(d.getDate() + 15);
-      fpPayment.setDate(d);
+      payDateInput.value = d.toISOString().split('T')[0];
     }
   }
 }
 
 export function updatePaymentMinDate() {
-  if (fpDelivery && fpDelivery.selectedDates[0] && fpPayment) {
-    const d = new Date(fpDelivery.selectedDates[0]);
+  const deliveryDateVal = getVal('field_delivery_date');
+  const paymentDateInput = document.getElementById('field_paid_date');
+  if (deliveryDateVal && paymentDateInput) {
+    const d = new Date(deliveryDateVal);
     d.setDate(d.getDate() + 15);
-    fpPayment.set('minDate', d);
+    const minDate = d.toISOString().split('T')[0];
+    paymentDateInput.setAttribute('min', minDate);
   }
 }
 
@@ -133,10 +128,10 @@ export function syncStatusSelect(val) {
 
 export function saveProject() {
   const name = getVal('fName'), status = getVal('fStatus');
-  const start = (fpStart && fpStart.selectedDates[0]) ? fpStart.formatDate(fpStart.selectedDates[0], "Y-m-d") : "";
-  const deadline = (fpDeadline && fpDeadline.selectedDates[0]) ? fpDeadline.formatDate(fpDeadline.selectedDates[0], "Y-m-dTH:i:s") : "";
-  const deliveryDate = (fpDelivery && fpDelivery.selectedDates[0]) ? fpDelivery.formatDate(fpDelivery.selectedDates[0], "Y-m-d") : "";
-  const paymentDate = (fpPayment && fpPayment.selectedDates[0]) ? fpPayment.formatDate(fpPayment.selectedDates[0], "Y-m-d") : "";
+  const start = getVal('field_start_date');
+  const deadline = getVal('field_deadline_date');
+  const deliveryDate = getVal('field_delivery_date');
+  const paymentDate = getVal('field_paid_date');
 
   if (!name || !deadline) return alert('Data missing');
   
@@ -147,8 +142,8 @@ export function saveProject() {
     if (paymentStatus === 'paid') {
       if (!paymentDate) return alert('Payment Date required');
       
-      const dDate = fpDelivery.selectedDates[0];
-      const pDate = fpPayment.selectedDates[0];
+      const dDate = new Date(deliveryDate);
+      const pDate = new Date(paymentDate);
       const diffDays = Math.floor((pDate - dDate) / 864e5);
       if (diffDays < 15) return alert('Payment Date must be at least 15 days after Delivery Date');
     }

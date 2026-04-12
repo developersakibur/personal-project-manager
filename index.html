@@ -15,10 +15,6 @@
   <!-- Image Capture Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   
-  <!-- Flatpickr (Date Picker) -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  
   <script type="module" src="js/app.js"></script>
   <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()" defer></script>
   <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()" defer></script>
@@ -136,31 +132,34 @@
           </div>
         </div>
         
+        <!-- Honeypot to catch browser autofill -->
+        <input type="text" style="display:none" name="prevent_autofill" value="" />
+
         <div class="modal-row">
           <label class="input-label">Title</label>
           <div class="input-field-wrapper">
-            <input class="input-field" id="fName" placeholder="Project Name || ID" />
+            <input class="input-field" id="fName" placeholder="Project Name || ID" autocomplete="off" />
           </div>
         </div>
 
         <div class="modal-row" style="align-items: flex-start;">
           <label class="input-label" style="margin-top: 10px;">Notes</label>
           <div class="input-field-wrapper">
-            <textarea class="input-field" id="fNotes" rows="2" placeholder="Brief project description..."></textarea>
+            <textarea class="input-field" id="fNotes" rows="2" placeholder="Brief project description..." autocomplete="off"></textarea>
           </div>
         </div>
 
         <div class="modal-row">
           <label class="input-label">Start</label>
           <div class="input-field-wrapper">
-            <input class="input-field" type="text" id="fStart" placeholder="DD/MM/YYYY" />
+            <input class="input-field" type="date" id="field_start_date" name="field_start_date" onclick="this.showPicker()" autocomplete="off" />
           </div>
         </div>
 
         <div class="modal-row">
           <label class="input-label">Deadline</label>
           <div class="input-field-wrapper">
-            <input class="input-field" type="text" id="fDeadline" placeholder="DD/MM/YYYY HH:mm" />
+            <input class="input-field" type="datetime-local" id="field_deadline_date" name="field_deadline_date" onclick="this.showPicker()" autocomplete="off" />
           </div>
         </div>
 
@@ -199,7 +198,7 @@
           <div class="modal-row">
             <label class="input-label">Delivered</label>
             <div class="input-field-wrapper">
-              <input class="input-field" type="text" id="fDeliveryDate" placeholder="DD/MM/YYYY" autocomplete="off" />
+              <input class="input-field" type="date" id="field_delivery_date" name="field_delivery_date" onclick="this.showPicker()" onchange="window.updatePaymentMinDate()" autocomplete="off" />
             </div>
           </div>
           <div class="modal-row">
@@ -222,7 +221,7 @@
           <div id="paymentDateSection" class="modal-row" style="display:none">
             <label class="input-label">Paid Date</label>
             <div class="input-field-wrapper">
-              <input class="input-field" type="text" id="fPaymentDate" placeholder="DD/MM/YYYY" autocomplete="off" />
+              <input class="input-field" type="date" id="field_paid_date" name="field_paid_date" onclick="this.showPicker()" autocomplete="off" />
             </div>
           </div>
           <div id="reviewedSection" class="modal-row">
