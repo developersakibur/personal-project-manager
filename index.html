@@ -44,8 +44,15 @@
 
     <div class="sidebar-clock">
       <div class="clock-display">
-        <span id="clockTime" class="clock-time">00:00:00</span>
+        <span id="clockTime" class="clock-time">00:00:00 AM</span>
         <span id="clockDate" class="clock-date">Monday, 01 Jan 2024</span>
+      </div>
+      <div class="view-toggle-container">
+        <label class="switch tiny">
+          <input type="checkbox" id="fListView" onclick="window.toggleListView()">
+          <span class="slider round"></span>
+        </label>
+        <span class="toggle-label">List</span>
       </div>
     </div>
 
@@ -57,6 +64,7 @@
 
     <div class="sidebar-search">
       <input type="text" id="sidebarSearch" placeholder="Search mission..." oninput="window.handleSearch(this.value)">
+      <button id="clearSearch" class="btn-clear-search" onclick="window.clearSearch()" style="display:none">&times;</button>
     </div>
 
     <div class="nav-label" style="margin-top: 8px;">Mission Quarter</div>
@@ -182,11 +190,11 @@
           <div class="input-field-wrapper">
             <div class="modal-pill-group">
               <label><input type="radio" name="fStatusPill" value="running" checked onclick="syncStatusSelect(this.value)"> Running</label>
-              <label><input type="radio" name="fStatusPill" value="delivered" onclick="syncStatusSelect(this.value)"> Done</label>
+              <label><input type="radio" name="fStatusPill" value="delivered" onclick="syncStatusSelect(this.value)"> Completed</label>
             </div>
             <select id="fStatus" style="display:none" onchange="toggleDeliveryFields()">
               <option value="running">running</option>
-              <option value="delivered">delivered</option>
+              <option value="delivered">completed</option>
             </select>
           </div>
         </div>

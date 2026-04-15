@@ -4,10 +4,18 @@
 .sidebar-logo span { color: var(--accent); }
 .user-tag { font-size: 11px; font-weight: 500; color: var(--text-muted); margin-bottom: 16px; }
 
-.sidebar-clock { background: #f8fafc; padding: 12px 14px; border-radius: 10px; margin-bottom: 16px; border: 1px solid var(--border-light); }
-.clock-display { display: flex; flex-direction: column; }
-.clock-time { font-family: 'Share Tech Mono', monospace; font-size: 20px; font-weight: 700; color: var(--primary); line-height: 1; letter-spacing: -0.5px; }
-.clock-date { font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+.sidebar-clock { background: #f8fafc; padding: 12px 14px; border-radius: 10px; margin-bottom: 16px; border: 1px solid var(--border-light); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.clock-display { display: flex; flex-direction: column; flex: 1; }
+.clock-time { font-family: 'Share Tech Mono', monospace; font-size: 16px; font-weight: 700; color: var(--primary); line-height: 1; letter-spacing: -0.5px; white-space: nowrap; }
+.clock-date { font-size: 9px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; white-space: nowrap; }
+
+.view-toggle-container { display: flex; flex-direction: column; align-items: center; gap: 4px; border-left: 1px solid var(--border-light); padding-left: 10px; }
+.toggle-label { font-size: 8px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); }
+
+/* Tiny Toggle Switch */
+.switch.tiny { width: 30px; height: 16px; }
+.switch.tiny .slider:before { height: 12px; width: 12px; left: 2px; bottom: 2px; }
+.switch input:checked + .slider:before { transform: translateX(14px); }
 
 .sidebar-actions { margin-bottom: 20px; }
 .btn-sidebar-add { width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
@@ -41,6 +49,29 @@
   background-size: contain; 
   opacity: 0.6; 
 }
+
+.btn-clear-search {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #f1f5f9;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s;
+  padding: 0;
+  line-height: 1;
+}
+.btn-clear-search:hover { background: #e2e8f0; color: var(--primary); }
 
 .nav-select {
   width: 100%;

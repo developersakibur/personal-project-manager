@@ -3,9 +3,9 @@ import { initGapi, initGis, startupCheck } from './modules/auth.js';
 import { render, downloadTodayReport, copyWorkReport } from './modules/ui.js';
 import { syncFromCloud, syncToCloud } from './modules/drive.js';
 import { 
-  setFilter, handleSearch, setQuarter, setTargetQuarter, openModal, saveProject, deleteProjectFromModal, 
+  setFilter, handleSearch, clearSearch, setQuarter, setTargetQuarter, openModal, saveProject, deleteProjectFromModal, 
   closeModal, toggleDeliveryFields, togglePaymentDate, updatePaymentMinDate, saveProfile, updateHeaderName,
-  exportData, importData, eraseAllData, sanitizeData, syncStatusSelect, toggleSort
+  exportData, importData, eraseAllData, sanitizeData, syncStatusSelect, toggleSort, toggleListView
 } from './modules/actions.js';
 
 // 1. EXPOSE TO WINDOW (For HTML event handlers)
@@ -16,6 +16,7 @@ window.handleDisconnect = () => { if (confirm('Sign out?')) { localStorage.remov
 
 window.setFilter = setFilter;
 window.handleSearch = handleSearch;
+window.clearSearch = clearSearch;
 window.setQuarter = setQuarter;
 window.setTargetQuarter = setTargetQuarter;
 window.render = render;
@@ -36,6 +37,7 @@ window.importData = importData;
 window.eraseAllData = eraseAllData;
 window.syncStatusSelect = syncStatusSelect;
 window.toggleSort = toggleSort;
+window.toggleListView = toggleListView;
 
 // 2. INITIALIZE APP
 document.addEventListener('DOMContentLoaded', () => { 
@@ -51,12 +53,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (localConfig) state.appConfig = JSON.parse(localConfig);
     
+    // Initialize List View Checkbox
+    const lvCheck = document.getElementById('fListView');
+    if (lvCheck) lvCheck.checked = state.listView;
+
     // Start background timers
     setInterval(() => { 
       const now = new Date();
       const ct = document.getElementById('clockTime'), cd = document.getElementById('clockDate');
-      if (ct) ct.textContent = now.toLocaleTimeString('en-GB', { hour12: false });
-      if (cd) cd.textContent = now.toLocaleDateString('en-GB');
+      if (ct) {
+        ct.textContent = now.toLocaleTimeString('en-GB', { 
+          timeZone: 'Asia/Dhaka', 
+          hour12: true, 
+          hour: '2-digit', 
+          minute: '2-digit', 
+          second: '2-digit' 
+        }).toUpperCase();
+      }
+      if (cd) {
+        cd.textContent = now.toLocaleDateString('en-GB', {
+          timeZone: 'Asia/Dhaka',
+          weekday: 'long', 
+          day: '2-digit', 
+          month: 'short', 
+          year: 'numeric'
+        });
+      }
       
       // Update live countdowns in table
       if (state.currentFilter !== 'today' && state.currentFilter !== 'account') {

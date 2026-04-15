@@ -11,7 +11,18 @@ export function setFilter(f, btn) {
 
 export function handleSearch(query) {
   state.searchQuery = query.trim().toLowerCase();
+  const clearBtn = document.getElementById('clearSearch');
+  if (clearBtn) clearBtn.style.display = query ? 'flex' : 'none';
   render();
+}
+
+export function clearSearch() {
+  const input = document.getElementById('sidebarSearch');
+  if (input) {
+    input.value = '';
+    handleSearch('');
+    input.focus();
+  }
 }
 
 export function setQuarter(val) {
@@ -84,27 +95,32 @@ export function updateDeliveryBounds() {
 }
 
 export function togglePaymentDate() {
-  updatePaymentMinDate();
+  updatePaymentBounds();
   
-  // Auto-calculate +15 days if the field is empty
+  // Auto-calculate +20 days if the field is empty
   const payDateInput = document.getElementById('field_paid_date');
   const deliveryDateVal = getVal('field_delivery_date');
   if (payDateInput && !payDateInput.value && deliveryDateVal) {
     const d = new Date(deliveryDateVal);
-    d.setDate(d.getDate() + 15);
+    d.setDate(d.getDate() + 20);
     payDateInput.value = d.toISOString().split('T')[0];
   }
 }
 
-export function updatePaymentMinDate() {
+export function updatePaymentBounds() {
   const deliveryDateVal = getVal('field_delivery_date');
   const paymentDateInput = document.getElementById('field_paid_date');
   if (deliveryDateVal && paymentDateInput) {
     const d = new Date(deliveryDateVal);
-    d.setDate(d.getDate() + 15);
-    const minDate = d.toISOString().split('T')[0];
-    paymentDateInput.setAttribute('min', minDate);
+    d.setDate(d.getDate() + 20);
+    const dateStr = d.toISOString().split('T')[0];
+    paymentDateInput.setAttribute('min', dateStr);
+    paymentDateInput.setAttribute('max', dateStr);
   }
+}
+
+export function updatePaymentMinDate() {
+  updatePaymentBounds();
 }
 
 export function syncStatusSelect(val) {
@@ -131,7 +147,7 @@ export function saveProject() {
     const dDate = new Date(deliveryDate);
     const pDate = new Date(paymentDate);
     const diffDays = Math.floor((pDate - dDate) / 864e5);
-    if (diffDays < 15) return alert('Payment Date must be at least 15 days after Delivery Date');
+    if (diffDays !== 20) return alert('Payment Date must be exactly 20 days after Delivery Date');
   }
   
   // Extract ID from name (e.g., "... || FO5225EAB5885")
@@ -334,6 +350,11 @@ export function toggleSort(monthKey, col) {
     s.col = col;
     s.dir = 'asc';
   }
+  render();
+}
+
+export function toggleListView() {
+  state.listView = document.getElementById('fListView')?.checked || false;
   render();
 }
 

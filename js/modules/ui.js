@@ -31,26 +31,13 @@ export function render() {
   if (state.currentFilter === 'today' || state.currentFilter === 'account') { renderProfileView(); return; }
   
   const currentKey = getCurrentMonthKey();
-  const monthKeys = new Set();
-  
-  // Collect all unique months from delivery dates
-  state.projects.forEach(p => { if (p.deliveryDate) monthKeys.add(p.deliveryDate.slice(0, 7)); });
-  monthKeys.add(currentKey);
-  
-  Array.from(monthKeys).sort().reverse().forEach(monthKey => {
-    const isCurrent = monthKey === currentKey;
-    
-    let filtered = state.projects.filter(p => {
-      const pMonth = p.status === 'running' ? currentKey : p.deliveryDate?.slice(0, 7);
-      return pMonth === monthKey;
-    });
 
-    // Apply Search Query Filter
+  // Unified filtering logic for both views
+  const getFilteredProjects = (projects) => {
+    let filtered = [...projects];
     if (state.searchQuery) {
       filtered = filtered.filter(p => p.name.toLowerCase().includes(state.searchQuery));
     }
-
-    // Apply specific sidebar filters
     if (state.currentFilter !== 'all') {
       if (state.currentFilter === 'transferred') {
         filtered = filtered.filter(p => p.transfer === 'yes');
@@ -64,13 +51,153 @@ export function render() {
         filtered = filtered.filter(p => p.status === state.currentFilter);
       }
     }
+    return filtered;
+  };
 
-    const showEmptyCurrent = isCurrent && state.currentFilter === 'all' && !state.searchQuery;
-    if (filtered.length > 0 || showEmptyCurrent) {
-      renderMonthGroup(monthKey, filtered, isCurrent);
-    }
-  });
+  if (state.listView) {
+    const allFiltered = getFilteredProjects(state.projects);
+    renderListView(allFiltered);
+  } else {
+    const monthKeys = new Set();
+    state.projects.forEach(p => { if (p.deliveryDate) monthKeys.add(p.deliveryDate.slice(0, 7)); });
+    monthKeys.add(currentKey);
+    
+    Array.from(monthKeys).sort().reverse().forEach(monthKey => {
+      const isCurrent = monthKey === currentKey;
+      const monthProjects = state.projects.filter(p => {
+        const pMonth = p.status === 'running' ? currentKey : p.deliveryDate?.slice(0, 7);
+        return pMonth === monthKey;
+      });
+      
+      const filtered = getFilteredProjects(monthProjects);
+      const showEmptyCurrent = isCurrent && state.currentFilter === 'all' && !state.searchQuery;
+      if (filtered.length > 0 || showEmptyCurrent) {
+        renderMonthGroup(monthKey, filtered, isCurrent);
+      }
+    });
+  }
   updateSidebarCounts();
+}
+
+function renderListView(projects) {
+  // Use 'global' as key for list view sorting or default to start date desc
+  const sort = state.monthSorts['global'] || { col: 'start', dir: 'desc' };
+  
+  const sorted = [...projects].sort((a, b) => {
+    let valA, valB;
+    switch (sort.col) {
+      case 'name': valA = a.name.toLowerCase(); valB = b.name.toLowerCase(); break;
+      case 'start': valA = a.start || ''; valB = b.start || ''; break;
+      case 'deadline': valA = a.deadline || ''; valB = b.deadline || ''; break;
+      case 'duration': 
+        valA = (new Date(a.deadline) - new Date(a.start)) || 0;
+        valB = (new Date(b.deadline) - new Date(b.start)) || 0;
+        break;
+      case 'gross': valA = parseFloat(a.value || 0); valB = parseFloat(b.value || 0); break;
+      case 'profit': 
+        valA = parseFloat(a.share) || parseFloat(a.value || 0) * 0.8;
+        valB = parseFloat(b.share) || parseFloat(b.value || 0) * 0.8;
+        break;
+      default: valA = a.start || ''; valB = b.start || '';
+    }
+    
+    // Handle empty values to always be at the bottom
+    if (!valA && !valB) return 0;
+    if (!valA) return 1;
+    if (!valB) return -1;
+
+    if (valA < valB) return sort.dir === 'asc' ? -1 : 1;
+    if (valA > valB) return sort.dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const html = `
+    <div class="month-group" style="margin-top: 0;">
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:30%; cursor:pointer;" onclick="window.toggleSort('global', 'name')">
+                Project Name / Mission ${getSortIndicator('global', 'name')}
+              </th>
+              <th style="width:10%; text-align: center; cursor:pointer;" onclick="window.toggleSort('global', 'start')">
+                Start ${getSortIndicator('global', 'start')}
+              </th>
+              <th style="width:10%; text-align: center; cursor:pointer;" onclick="window.toggleSort('global', 'deadline')">
+                Deadline ${getSortIndicator('global', 'deadline')}
+              </th>
+              <th style="width:10%; text-align: center; cursor:pointer;" onclick="window.toggleSort('global', 'duration')">
+                Duration ${getSortIndicator('global', 'duration')}
+              </th>
+              <th style="width:10%; text-align: center; cursor:pointer;" onclick="window.toggleSort('global', 'gross')">
+                Gross ${getSortIndicator('global', 'gross')}
+              </th>
+              <th style="width:10%; text-align: center; cursor:pointer;" onclick="window.toggleSort('global', 'profit')">
+                Profit ${getSortIndicator('global', 'profit')}
+              </th>
+              <th style="width:20%;">Status / Tracking</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sorted.length === 0 ? '<tr><td colspan="7" style="text-align:center; padding:40px; color:var(--text-muted);">No projects match the current filters.</td></tr>' : 
+              sorted.map(p => renderProjectRow(p)).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  document.getElementById('mainDisplayArea').innerHTML = html;
+}
+
+function renderProjectRow(p) {
+  const cd = getCD(p.deadline), gross = parseFloat(p.value||0), net = parseFloat(p.share) || gross*0.8;
+  const cat = CATEGORIES.find(c => c.id === p.status);
+  
+  // Calculate Duration and Percentage
+  const start = new Date(p.start), deadline = new Date(p.deadline), now = new Date();
+  const totalMs = deadline - start, remainingMs = deadline - now;
+  const durationDays = Math.ceil(totalMs / 864e5);
+  const percent = totalMs > 0 ? (remainingMs / totalMs) : 0;
+  
+  // Determine Timer Style
+  let timerStyle = '';
+  if (p.status === 'running') {
+    if (remainingMs < 3 * 864e5) { 
+      timerStyle = 'background: #fef2f2; color: var(--error); border-color: #fecaca;';
+    } else if (percent < 0.5) { 
+      timerStyle = 'background: #fffbeb; color: var(--warning); border-color: #fde68a;';
+    } else { 
+      timerStyle = 'background: #f0fdf4; color: var(--success); border-color: #bbf7d0;';
+    }
+  }
+
+  return `<tr onclick="window.openModal('${p.id}')">
+    <td><div class="project-info">
+      <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:4px;">
+        ${cat?`<span class="p-badge" style="color:${cat.color}; border-color:${cat.color}20; background:${cat.color}10">${cat.label}</span>`:''}
+        ${getPaymentStatus(p) === 'paid' ? `<span class="p-badge" style="color:var(--success); border-color:var(--success)20; background:var(--success)10">PAID</span>` : `<span class="p-badge" style="color:var(--error); border-color:var(--error)20; background:var(--error)10">DUE</span>`}
+        ${p.transfer === 'yes' ? `<span class="p-badge" style="color:#6366f1; border-color:#6366f120; background:#6366f110">TRANSFERRED</span>` : `<span class="p-badge" style="color:var(--warning); border-color:var(--warning)20; background:var(--warning)10">PENDING</span>`}
+        ${p.reviewed && p.reviewed !== '0' && p.reviewed !== 'no' ? `<span class="p-badge" style="color:var(--warning); border-color:var(--warning)20; background:var(--warning)10">★ ${p.reviewed}</span>` : ''}
+        ${p.todayTask ? `<span class="p-badge" style="color:white; border:none; background:#0891b2; font-weight:800;">TODAY</span>` : ''}
+      </div>
+      <div class="p-title">${p.name}</div>
+      ${p.todayTask ? `<div class="p-desc">${p.notes||''}</div>` : ''}
+    </div></td>
+    <td style="text-align: center; color: var(--text-muted); font-weight: 500;">${formatDate(p.start)}</td>
+    <td style="text-align: center; color: var(--primary); font-weight: 700;">${formatDate(p.deadline)}</td>
+    <td style="text-align: center;">
+      <span style="font-size:11px; color:var(--text-muted); font-weight:700; background: var(--bg); padding: 4px 10px; border-radius: 6px; text-transform: uppercase;">
+        ${durationDays} Days
+      </span>
+    </td>
+    <td style="text-align: center; color: var(--text-muted); font-weight: 600; font-size: 13px;">$${gross.toFixed(0)}</td>
+    <td style="text-align: center; color: var(--primary); font-weight: 800; font-size: 15px;">$${net.toFixed(0)}</td>
+    <td style="padding-right: 24px;">${p.status==='running'?`<div class="timer-pill" style="${timerStyle}" data-deadline="${p.deadline}" data-start="${p.start}">
+      <span class="timer-val">${cd?`${cd.d}d ${cd.h}h ${cd.m}m ${cd.s}s`:'OVER'}</span>
+    </div>`:`<div class="delivery-pill">
+      <span class="delivery-val">${formatDate(p.deliveryDate)}</span>
+      ${p.paymentDate ? `<span style="margin: 0 4px; opacity: 0.5;">-</span><span class="delivery-val" style="color:${getPaymentStatus(p) === 'paid' ? 'var(--success)' : 'var(--error)'}">${formatDate(p.paymentDate)}</span>` : ''}
+    </div>`}</td>
+  </tr>`;
 }
 
 function renderQuarterSelect() {
@@ -116,7 +243,7 @@ function renderQuarterSelect() {
 }
 
 function getSortIndicator(monthKey, col) {
-  const s = state.monthSorts[monthKey] || { col: 'deadline', dir: 'asc' };
+  const s = state.monthSorts[monthKey] || { col: 'start', dir: 'desc' };
   if (s.col !== col) return '<span style="opacity:0.2; margin-left:4px;">↕</span>';
   return `<span style="color:var(--accent); margin-left:4px; font-weight:800;">${s.dir === 'asc' ? '↑' : '↓'}</span>`;
 }
@@ -126,8 +253,8 @@ function renderMonthGroup(monthKey, projects, isCurrent) {
   const dateObj = new Date(y, m-1);
   const name = dateObj.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
   
-  // Apply Independent Sorting for THIS month
-  const sort = state.monthSorts[monthKey] || { col: 'deadline', dir: 'asc' };
+  // Apply Independent Sorting for THIS month - Default to Start Date Desc
+  const sort = state.monthSorts[monthKey] || { col: 'start', dir: 'desc' };
   const sortedProjects = [...projects].sort((a, b) => {
     let valA, valB;
     switch (sort.col) {
@@ -144,8 +271,14 @@ function renderMonthGroup(monthKey, projects, isCurrent) {
         valB = parseFloat(b.share) || parseFloat(b.value || 0) * 0.8;
         break;
       case 'status': valA = a.status; valB = b.status; break;
-      default: valA = a.deadline || ''; valB = b.deadline || '';
+      default: valA = a.start || ''; valB = b.start || '';
     }
+    
+    // Handle empty values to always be at the bottom
+    if (!valA && !valB) return 0;
+    if (!valA) return 1;
+    if (!valB) return -1;
+
     if (valA < valB) return sort.dir === 'asc' ? -1 : 1;
     if (valA > valB) return sort.dir === 'asc' ? 1 : -1;
     return 0;
@@ -253,10 +386,10 @@ function renderMonthGroup(monthKey, projects, isCurrent) {
                   <td><div class="project-info">
                     <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:4px;">
                       ${cat?`<span class="p-badge" style="color:${cat.color}; border-color:${cat.color}20; background:${cat.color}10">${cat.label}</span>`:''}
-                      ${p.todayTask ? `<span class="p-badge" style="color:#0891b2; border-color:#0891b220; background:#0891b210">TODAY</span>` : ''}
                       ${getPaymentStatus(p) === 'paid' ? `<span class="p-badge" style="color:var(--success); border-color:var(--success)20; background:var(--success)10">PAID</span>` : `<span class="p-badge" style="color:var(--error); border-color:var(--error)20; background:var(--error)10">DUE</span>`}
                       ${p.transfer === 'yes' ? `<span class="p-badge" style="color:#6366f1; border-color:#6366f120; background:#6366f110">TRANSFERRED</span>` : `<span class="p-badge" style="color:var(--warning); border-color:var(--warning)20; background:var(--warning)10">PENDING</span>`}
-                      ${p.reviewed && p.reviewed!=='no'?`<span class="p-badge" style="color:var(--warning); border-color:var(--warning)20; background:var(--warning)10">★ ${p.reviewed}</span>`:''}
+                      ${p.reviewed && p.reviewed !== '0' && p.reviewed !== 'no' ? `<span class="p-badge" style="color:var(--warning); border-color:var(--warning)20; background:var(--warning)10">★ ${p.reviewed}</span>` : ''}
+                      ${p.todayTask ? `<span class="p-badge" style="color:white; border:none; background:#0891b2; font-weight:800;">TODAY</span>` : ''}
                     </div>
                     <div class="p-title">${p.name}</div>
                     ${p.todayTask ? `<div class="p-desc">${p.notes||''}</div>` : ''}
@@ -291,17 +424,20 @@ function renderProfileView() {
   const dateStr = now.toLocaleDateString('en-GB'); // DD/MM/YYYY
   
   // Get yesterday's date for Work Mission Control
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = yesterday.toLocaleDateString('en-GB');
+  const reportDate = new Date(now);
+  reportDate.setDate(reportDate.getDate() - 1);
+  const yesterdayStr = reportDate.toLocaleDateString('en-GB');
 
   const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true });
   const fullName = state.appConfig.profile.name || state.appConfig.headerName || 'MANAGER';
   
-  // Calculate Stats
-  const todayISO = now.toISOString().slice(0, 10);
+  // Calculate Stats - Report stats for the reportDate (yesterday)
+  const reportISO = reportDate.toISOString().slice(0, 10);
+  const todayISO = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  
+  // User requested: "03. Today Delivered" should count projects delivered TODAY (now)
   const projectsDeliveredToday = state.projects.filter(p => p.status !== 'running' && p.deliveryDate === todayISO);
-  const todayDeliveredValue = projectsDeliveredToday.reduce((acc, p) => acc + (parseFloat(p.share) || parseFloat(p.value) * 0.8 || 0), 0);
+  const reportDeliveredValue = projectsDeliveredToday.reduce((acc, p) => acc + (parseFloat(p.share) || parseFloat(p.value) * 0.8 || 0), 0);
   
   const currentMonthKey = getCurrentMonthKey();
   const currentMonthProjects = state.projects.filter(p => p.status !== 'running' && p.deliveryDate?.startsWith(currentMonthKey));
@@ -442,7 +578,7 @@ function renderProfileView() {
 
            <div class="report-form-row">
               <span class="report-form-label">03. Today Delivered</span>
-              <span class="report-form-field" style="font-weight: 800; color: var(--success); font-size: 16px;">$${todayDeliveredValue.toFixed(0)}</span>
+              <span class="report-form-field" style="font-weight: 800; color: var(--success); font-size: 16px;">$${reportDeliveredValue.toFixed(0)}</span>
            </div>
 
            <div class="report-form-row">
@@ -692,11 +828,16 @@ export function copyWorkReport(btn) {
   const note = document.getElementById('reportNote')?.value || '';
   
   const now = new Date();
-  const dateStr = now.toLocaleDateString('en-GB'); 
+  const reportDate = new Date(now);
+  reportDate.setDate(reportDate.getDate() - 1);
+  const dateStr = reportDate.toLocaleDateString('en-GB'); 
   
-  const todayISO = now.toISOString().slice(0, 10);
+  const reportISO = reportDate.toISOString().slice(0, 10);
+  const todayISO = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  
+  // User requested: "03. Today Delivered" should count projects delivered TODAY (now)
   const projectsDeliveredToday = state.projects.filter(p => p.status !== 'running' && p.deliveryDate === todayISO);
-  const todayVal = projectsDeliveredToday.reduce((acc, p) => acc + (parseFloat(p.share) || parseFloat(p.value) * 0.8 || 0), 0);
+  const reportVal = projectsDeliveredToday.reduce((acc, p) => acc + (parseFloat(p.share) || parseFloat(p.value) * 0.8 || 0), 0);
   
   const currentMonthKey = getCurrentMonthKey();
   const currentMonthProjects = state.projects.filter(p => p.status !== 'running' && p.deliveryDate?.startsWith(currentMonthKey));
@@ -705,7 +846,7 @@ export function copyWorkReport(btn) {
   const running = state.projects.filter(p => p.status === 'running');
   const workloadVal = running.reduce((acc, p) => acc + (parseFloat(p.value) * 0.8 || 0), 0);
 
-  let text = `Daily Work Report\n\nDate: ${dateStr}\n\n01. In Time: ${inTime}\n\n02. Issue Sheet Status: ${issue}\n\n03. Today Delivered: $${todayVal.toFixed(0)}\n\n04. Delivered Till Now: $${currentMonthVal.toFixed(0)}\n\n05. Workload in Hand: $${workloadVal.toFixed(0)}\n\n06. Number of projects: ${String(running.length).padStart(2, '0')}\n\n07. Progress Sheet Status: ${progress}`;
+  let text = `Daily Work Report\n\nDate: ${dateStr}\n\n01. In Time: ${inTime}\n\n02. Issue Sheet Status: ${issue}\n\n03. Today Delivered: $${reportVal.toFixed(0)}\n\n04. Delivered Till Now: $${currentMonthVal.toFixed(0)}\n\n05. Workload in Hand: $${workloadVal.toFixed(0)}\n\n06. Number of projects: ${String(running.length).padStart(2, '0')}\n\n07. Progress Sheet Status: ${progress}`;
   
   if (note.trim()) {
     text += `\n\n08. Note: ${note}`;
