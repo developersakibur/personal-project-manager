@@ -171,6 +171,13 @@
         </div>
 
         <div class="modal-row">
+          <label class="input-label">Final Share</label>
+          <div class="input-field-wrapper">
+            <input class="input-field" type="number" id="fShare" placeholder="Amount you keep ($)" />
+          </div>
+        </div>
+
+        <div class="modal-row">
           <label class="input-label">Status</label>
           <div class="input-field-wrapper">
             <div class="modal-pill-group">
@@ -201,24 +208,8 @@
               <input class="input-field" type="date" id="field_delivery_date" name="field_delivery_date" onclick="this.showPicker()" onchange="window.updatePaymentMinDate()" autocomplete="off" />
             </div>
           </div>
-          <div class="modal-row">
-            <label class="input-label">Final Share</label>
-            <div class="input-field-wrapper">
-              <input class="input-field" type="number" id="fShare" placeholder="Amount you keep ($)" />
-            </div>
-          </div>
           
-          <div class="modal-row">
-            <label class="input-label">Payment</label>
-            <div class="input-field-wrapper">
-              <div class="modal-pill-group">
-                <label><input type="radio" name="fPayment" id="fPaymentDue" value="due" checked onchange="togglePaymentDate()"> Due</label>
-                <label><input type="radio" name="fPayment" id="fPaymentPaid" value="paid" onchange="togglePaymentDate()"> Paid</label>
-              </div>
-            </div>
-          </div>
-
-          <div id="paymentDateSection" class="modal-row" style="display:none">
+          <div id="paymentDateSection" class="modal-row">
             <label class="input-label">Paid Date</label>
             <div class="input-field-wrapper">
               <input class="input-field" type="date" id="field_paid_date" name="field_paid_date" onclick="this.showPicker()" autocomplete="off" />
@@ -227,14 +218,14 @@
           <div id="reviewedSection" class="modal-row">
             <label class="input-label">Rating</label>
             <div class="input-field-wrapper">
-              <select class="input-field" id="fReviewed">
-                <option value="no">No Review</option>
-                <option value="1">⭐ 1 Star</option>
-                <option value="2">⭐⭐ 2 Stars</option>
-                <option value="3">⭐⭐⭐ 3 Stars</option>
-                <option value="4">⭐⭐⭐⭐ 4 Stars</option>
-                <option value="5">⭐⭐⭐⭐⭐ 5 Stars</option>
-              </select>
+              <div class="modal-pill-group">
+                <label><input type="radio" name="fRatingPill" value="0" checked> 0</label>
+                <label><input type="radio" name="fRatingPill" value="1"> 1</label>
+                <label><input type="radio" name="fRatingPill" value="2"> 2</label>
+                <label><input type="radio" name="fRatingPill" value="3"> 3</label>
+                <label><input type="radio" name="fRatingPill" value="4"> 4</label>
+                <label><input type="radio" name="fRatingPill" value="5"> 5</label>
+              </div>
             </div>
           </div>
         </div>

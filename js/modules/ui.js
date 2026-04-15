@@ -1,7 +1,12 @@
 import { state, CATEGORIES, getCD, getCurrentMonthKey } from './state.js';
 
 export function getPaymentStatus(p) {
-  return p.paymentStatus || 'due';
+  if (!p.paymentDate) return 'due';
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const payDate = new Date(p.paymentDate);
+  payDate.setHours(0, 0, 0, 0);
+  return payDate <= today ? 'paid' : 'due';
 }
 
 function formatDate(dateStr) {
@@ -269,7 +274,7 @@ function renderMonthGroup(monthKey, projects, isCurrent) {
                     <span class="timer-val">${cd?`${cd.d}d ${cd.h}h ${cd.m}m ${cd.s}s`:'OVER'}</span>
                   </div>`:`<div class="delivery-pill">
                     <span class="delivery-val">${formatDate(p.deliveryDate)}</span>
-                    ${p.paymentDate ? `<span style="margin: 0 4px; opacity: 0.5;">-</span><span class="delivery-val" style="color:var(--success)">${formatDate(p.paymentDate)}</span>` : ''}
+                    ${p.paymentDate ? `<span style="margin: 0 4px; opacity: 0.5;">-</span><span class="delivery-val" style="color:${getPaymentStatus(p) === 'paid' ? 'var(--success)' : 'var(--error)'}">${formatDate(p.paymentDate)}</span>` : ''}
                   </div>`}</td>
                 </tr>`
               }).join('')}
@@ -284,6 +289,12 @@ function renderProfileView() {
   const filtered = state.projects.filter(p => p.todayTask);
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-GB'); // DD/MM/YYYY
+  
+  // Get yesterday's date for Work Mission Control
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toLocaleDateString('en-GB');
+
   const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true });
   const fullName = state.appConfig.profile.name || state.appConfig.headerName || 'MANAGER';
   
@@ -409,7 +420,7 @@ function renderProfileView() {
         <div style="display: flex; flex-direction: column; gap: 4px; flex: 1;">
            <div class="report-form-row">
               <span class="report-form-label">Date</span>
-              <span class="report-form-field" style="font-weight: 700; color: var(--primary); font-size: 14px;">${dateStr}</span>
+              <span class="report-form-field" style="font-weight: 700; color: var(--primary); font-size: 14px;">${yesterdayStr}</span>
            </div>
            
            <div class="report-form-row">
@@ -423,8 +434,8 @@ function renderProfileView() {
               <span class="report-form-label">02. Issue Sheet Status</span>
               <div class="report-form-field">
                  <div class="pill-group">
-                    <label><input type="radio" name="reportIssue" value="WIP" checked> WIP</label>
-                    <label><input type="radio" name="reportIssue" value="Clear"> Clear</label>
+                    <label><input type="radio" name="reportIssue" value="Clear" checked> Clear</label>
+                    <label><input type="radio" name="reportIssue" value="WIP"> WIP</label>
                  </div>
               </div>
            </div>

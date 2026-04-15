@@ -42,17 +42,13 @@ export function openModal(id = null) {
     setVal('fStatus', p.status); 
     setVal('fShare', p.share); 
     setCheck('fToday', p.todayTask); 
-    setVal('fReviewed', p.reviewed || 'no'); 
     setVal('field_delivery_date', p.deliveryDate || '');
-    
-    // Set payment fields
-    const payStatus = p.paymentStatus || 'due';
-    document.getElementsByName('fPayment').forEach(r => r.checked = r.value === payStatus);
     setVal('field_paid_date', p.paymentDate || '');
     
     // Set pill radios
     document.getElementsByName('fStatusPill').forEach(r => r.checked = r.value === p.status);
     document.getElementsByName('fTransfer').forEach(r => r.checked = r.value === p.transfer);
+    document.getElementsByName('fRatingPill').forEach(r => r.checked = r.value === (p.reviewed || '0'));
   } else {
     setVal('fName', ''); 
     setVal('field_start_date', new Date().toISOString().slice(0, 10));
@@ -62,13 +58,12 @@ export function openModal(id = null) {
     setVal('fStatus', 'running'); 
     setVal('fShare', ''); 
     setCheck('fToday', false); 
-    setVal('fReviewed', 'no'); 
     setVal('field_delivery_date', '');
     setVal('field_paid_date', '');
-    document.getElementsByName('fPayment').forEach(r => r.checked = r.value === 'due');
     
     document.getElementsByName('fStatusPill').forEach(r => r.checked = r.value === 'running');
     document.getElementsByName('fTransfer').forEach(r => r.checked = r.value === 'no');
+    document.getElementsByName('fRatingPill').forEach(r => r.checked = r.value === '0');
   }
   toggleDeliveryFields();
   togglePaymentDate();
@@ -89,21 +84,15 @@ export function updateDeliveryBounds() {
 }
 
 export function togglePaymentDate() {
-  const isPaid = Array.from(document.getElementsByName('fPayment')).find(r => r.checked)?.value === 'paid';
-  const sec = document.getElementById('paymentDateSection');
-  if (sec) sec.style.display = isPaid ? 'flex' : 'none';
+  updatePaymentMinDate();
   
-  if (isPaid) {
-    updatePaymentMinDate();
-    
-    // Auto-calculate +15 days if the field is empty
-    const payDateInput = document.getElementById('field_paid_date');
-    const deliveryDateVal = getVal('field_delivery_date');
-    if (payDateInput && !payDateInput.value && deliveryDateVal) {
-      const d = new Date(deliveryDateVal);
-      d.setDate(d.getDate() + 15);
-      payDateInput.value = d.toISOString().split('T')[0];
-    }
+  // Auto-calculate +15 days if the field is empty
+  const payDateInput = document.getElementById('field_paid_date');
+  const deliveryDateVal = getVal('field_delivery_date');
+  if (payDateInput && !payDateInput.value && deliveryDateVal) {
+    const d = new Date(deliveryDateVal);
+    d.setDate(d.getDate() + 15);
+    payDateInput.value = d.toISOString().split('T')[0];
   }
 }
 
@@ -135,18 +124,14 @@ export function saveProject() {
 
   if (!name || !deadline) return alert('Data missing');
   
-  const paymentStatus = Array.from(document.getElementsByName('fPayment')).find(r => r.checked)?.value || 'due';
-
   if (status !== 'running') {
     if (!deliveryDate) return alert('Delivery Date required');
-    if (paymentStatus === 'paid') {
-      if (!paymentDate) return alert('Payment Date required');
-      
-      const dDate = new Date(deliveryDate);
-      const pDate = new Date(paymentDate);
-      const diffDays = Math.floor((pDate - dDate) / 864e5);
-      if (diffDays < 15) return alert('Payment Date must be at least 15 days after Delivery Date');
-    }
+    if (!paymentDate) return alert('Payment Date required');
+    
+    const dDate = new Date(deliveryDate);
+    const pDate = new Date(paymentDate);
+    const diffDays = Math.floor((pDate - dDate) / 864e5);
+    if (diffDays < 15) return alert('Payment Date must be at least 15 days after Delivery Date');
   }
   
   // Extract ID from name (e.g., "... || FO5225EAB5885")
@@ -157,10 +142,10 @@ export function saveProject() {
     id: newId, 
     name, start, deadline, value: getVal('fValue'), notes: getVal('fNotes'), status, share: getVal('fShare'), 
     transfer: Array.from(document.getElementsByName('fTransfer')).find(r => r.checked)?.value || 'no', 
-    paymentStatus,
     paymentDate,
     todayTask: document.getElementById('fToday')?.checked || false, 
-    reviewed: getVal('fReviewed'), deliveryDate 
+    reviewed: Array.from(document.getElementsByName('fRatingPill')).find(r => r.checked)?.value || '0', 
+    deliveryDate 
   };
   
   if (state.editId) {
@@ -234,9 +219,7 @@ export function closeModal() {
 export function toggleDeliveryFields() {
   const s = getVal('fStatus');
   const delSec = document.getElementById('deliverySection');
-  const revSec = document.getElementById('reviewedSection');
   if (delSec) delSec.style.display = s !== 'running' ? 'block' : 'none';
-  if (revSec) revSec.style.display = s === 'delivered' ? 'block' : 'none';
 }
 
 export function renderAccount() {
