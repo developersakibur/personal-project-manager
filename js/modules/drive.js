@@ -43,7 +43,11 @@ export async function syncFromCloud() {
 
       if (data && (data.projects || data.config)) {
         if (data.projects) state.projects = data.projects;
-        if (data.config) state.appConfig = data.config;
+        if (data.config) {
+          state.appConfig = data.config;
+          if (state.appConfig.listView !== undefined) state.listView = state.appConfig.listView;
+          if (state.appConfig.selectedQuarter !== undefined) state.selectedQuarter = state.appConfig.selectedQuarter;
+        }
         localStorage.setItem('p_data', JSON.stringify(state.projects));
         localStorage.setItem('app_config', JSON.stringify(state.appConfig));
         if (window.render) window.render();

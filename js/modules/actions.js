@@ -28,6 +28,9 @@ export function clearSearch() {
 export function setQuarter(val) {
   const [year, qIdx] = val.split('-').map(Number);
   state.selectedQuarter = { year, qIdx };
+  state.appConfig.selectedQuarter = state.selectedQuarter;
+  localStorage.setItem('app_config', JSON.stringify(state.appConfig));
+  syncToCloud();
   render();
 }
 
@@ -44,6 +47,12 @@ export function openModal(id = null) {
   if (title) title.textContent = id ? 'Modify Mission' : 'New Mission';
   if (delBtn) delBtn.style.display = id ? 'block' : 'none';
   
+  // Clear any previous bounds to avoid stale restrictions
+  const deliveryInput = document.getElementById('field_delivery_date');
+  const paymentInput = document.getElementById('field_paid_date');
+  if (deliveryInput) { deliveryInput.removeAttribute('min'); deliveryInput.removeAttribute('max'); }
+  if (paymentInput) { paymentInput.removeAttribute('min'); paymentInput.removeAttribute('max'); }
+
   if (p) {
     setVal('fName', p.name); 
     setVal('field_start_date', p.start);
@@ -115,7 +124,6 @@ export function updatePaymentBounds() {
     d.setDate(d.getDate() + 20);
     const dateStr = d.toISOString().split('T')[0];
     paymentDateInput.setAttribute('min', dateStr);
-    paymentDateInput.setAttribute('max', dateStr);
   }
 }
 
@@ -147,7 +155,7 @@ export function saveProject() {
     const dDate = new Date(deliveryDate);
     const pDate = new Date(paymentDate);
     const diffDays = Math.floor((pDate - dDate) / 864e5);
-    if (diffDays !== 20) return alert('Payment Date must be exactly 20 days after Delivery Date');
+    if (diffDays < 20) return alert('Payment Date must be at least 20 days after Delivery Date');
   }
   
   // Extract ID from name (e.g., "... || FO5225EAB5885")
@@ -355,6 +363,9 @@ export function toggleSort(monthKey, col) {
 
 export function toggleListView() {
   state.listView = document.getElementById('fListView')?.checked || false;
+  state.appConfig.listView = state.listView;
+  localStorage.setItem('app_config', JSON.stringify(state.appConfig));
+  syncToCloud();
   render();
 }
 

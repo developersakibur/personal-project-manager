@@ -51,7 +51,11 @@ document.addEventListener('DOMContentLoaded', () => {
       state.projects = JSON.parse(localData); 
       sanitizeData();
     }
-    if (localConfig) state.appConfig = JSON.parse(localConfig);
+    if (localConfig) {
+      state.appConfig = JSON.parse(localConfig);
+      if (state.appConfig.listView !== undefined) state.listView = state.appConfig.listView;
+      if (state.appConfig.selectedQuarter !== undefined) state.selectedQuarter = state.appConfig.selectedQuarter;
+    }
     
     // Initialize List View Checkbox
     const lvCheck = document.getElementById('fListView');

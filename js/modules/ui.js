@@ -93,10 +93,10 @@ function renderListView(projects) {
         valA = (new Date(a.deadline) - new Date(a.start)) || 0;
         valB = (new Date(b.deadline) - new Date(b.start)) || 0;
         break;
-      case 'gross': valA = parseFloat(a.value || 0); valB = parseFloat(b.value || 0); break;
+      case 'gross': valA = parseFloat(a.value) || 0; valB = parseFloat(b.value) || 0; break;
       case 'profit': 
-        valA = parseFloat(a.share) || parseFloat(a.value || 0) * 0.8;
-        valB = parseFloat(b.share) || parseFloat(b.value || 0) * 0.8;
+        valA = parseFloat(a.share) || (parseFloat(a.value) * 0.8) || 0;
+        valB = parseFloat(b.share) || (parseFloat(b.value) * 0.8) || 0;
         break;
       default: valA = a.start || ''; valB = b.start || '';
     }
@@ -149,7 +149,7 @@ function renderListView(projects) {
 }
 
 function renderProjectRow(p) {
-  const cd = getCD(p.deadline), gross = parseFloat(p.value||0), net = parseFloat(p.share) || gross*0.8;
+  const cd = getCD(p.deadline), gross = parseFloat(p.value) || 0, net = parseFloat(p.share) || (gross * 0.8) || 0;
   const cat = CATEGORIES.find(c => c.id === p.status);
   
   // Calculate Duration and Percentage
@@ -265,10 +265,10 @@ function renderMonthGroup(monthKey, projects, isCurrent) {
         valA = (new Date(a.deadline) - new Date(a.start)) || 0;
         valB = (new Date(b.deadline) - new Date(b.start)) || 0;
         break;
-      case 'gross': valA = parseFloat(a.value || 0); valB = parseFloat(b.value || 0); break;
+      case 'gross': valA = parseFloat(a.value) || 0; valB = parseFloat(b.value) || 0; break;
       case 'profit': 
-        valA = parseFloat(a.share) || parseFloat(a.value || 0) * 0.8;
-        valB = parseFloat(b.share) || parseFloat(b.value || 0) * 0.8;
+        valA = parseFloat(a.share) || (parseFloat(a.value) * 0.8) || 0;
+        valB = parseFloat(b.share) || (parseFloat(b.value) * 0.8) || 0;
         break;
       case 'status': valA = a.status; valB = b.status; break;
       default: valA = a.start || ''; valB = b.start || '';
@@ -287,8 +287,8 @@ function renderMonthGroup(monthKey, projects, isCurrent) {
   const del = sortedProjects.filter(p => p.status !== 'running');
   const running = sortedProjects.filter(p => p.status === 'running');
   
-  const achieved = del.reduce((acc, p) => acc + (parseFloat(p.share) || parseFloat(p.value) * 0.8 || 0), 0);
-  const workload = running.reduce((acc, p) => acc + ((parseFloat(p.value) || 0) * 0.8), 0);
+  const achieved = del.reduce((acc, p) => acc + (parseFloat(p.share) || (parseFloat(p.value) * 0.8) || 0), 0);
+  const workload = running.reduce((acc, p) => acc + (parseFloat(p.share) || (parseFloat(p.value) * 0.8) || 0), 0);
   
   // Calculate dynamic monthly target from quarterly config
   const [year, month] = monthKey.split('-').map(Number);
@@ -298,7 +298,7 @@ function renderMonthGroup(monthKey, projects, isCurrent) {
   const monthlyMin = qCfg.min / 3;
   
   const revenueUSD = achieved - monthlyMin;
-  const revenueBDT = revenueUSD * 5;
+  const revenueBDT = revenueUSD * 5; 
 
   const html = `
     <div class="month-group">
@@ -361,7 +361,7 @@ function renderMonthGroup(monthKey, projects, isCurrent) {
           <tbody>
             ${sortedProjects.length === 0 ? '<tr><td colspan="7" style="text-align:center; padding:40px; color:var(--text-muted);">No projects recorded for this period.</td></tr>' : 
               sortedProjects.map(p => {
-                const cd = getCD(p.deadline), gross = parseFloat(p.value||0), net = parseFloat(p.share) || gross*0.8;
+                const cd = getCD(p.deadline), gross = parseFloat(p.value) || 0, net = parseFloat(p.share) || (gross * 0.8) || 0;
                 const cat = CATEGORIES.find(c => c.id === p.status);
                 
                 // Calculate Duration and Percentage
@@ -432,19 +432,18 @@ function renderProfileView() {
   const fullName = state.appConfig.profile.name || state.appConfig.headerName || 'MANAGER';
   
   // Calculate Stats - Report stats for the reportDate (yesterday)
-  const reportISO = reportDate.toISOString().slice(0, 10);
   const todayISO = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
   
   // User requested: "03. Today Delivered" should count projects delivered TODAY (now)
   const projectsDeliveredToday = state.projects.filter(p => p.status !== 'running' && p.deliveryDate === todayISO);
-  const reportDeliveredValue = projectsDeliveredToday.reduce((acc, p) => acc + (parseFloat(p.share) || parseFloat(p.value) * 0.8 || 0), 0);
+  const reportDeliveredValue = projectsDeliveredToday.reduce((acc, p) => acc + (parseFloat(p.share) || (parseFloat(p.value) * 0.8) || 0), 0);
   
   const currentMonthKey = getCurrentMonthKey();
   const currentMonthProjects = state.projects.filter(p => p.status !== 'running' && p.deliveryDate?.startsWith(currentMonthKey));
-  const currentMonthValue = currentMonthProjects.reduce((acc, p) => acc + (parseFloat(p.share) || parseFloat(p.value) * 0.8 || 0), 0);
+  const currentMonthValue = currentMonthProjects.reduce((acc, p) => acc + (parseFloat(p.share) || (parseFloat(p.value) * 0.8) || 0), 0);
   
   const runningProjects = state.projects.filter(p => p.status === 'running');
-  const workloadValue = runningProjects.reduce((acc, p) => acc + (parseFloat(p.value) * 0.8 || 0), 0);
+  const workloadValue = runningProjects.reduce((acc, p) => acc + (parseFloat(p.share) || (parseFloat(p.value) * 0.8) || 0), 0);
 
   // Quarter Selection for Config
   const startYear = 2025, startQ = 3; // Oct-Dec 2025
@@ -719,20 +718,21 @@ function renderInsights() {
     }
   });
 
+  const currentMonthKey = getCurrentMonthKey();
   const groupProjects = state.projects.filter(p => {
     const isActive = p.status === 'running';
-    const currentMonthKey = getCurrentMonthKey();
-    const pMonth = (isActive && !p.deliveryDate) ? currentMonthKey : p.deliveryDate?.slice(0, 7);
+    // Unify pMonth logic: running projects are ALWAYS in the current month group
+    const pMonth = isActive ? currentMonthKey : p.deliveryDate?.slice(0, 7);
     return groupKeys.includes(pMonth);
   });
 
   const achieved = groupProjects.reduce((acc, p) => {
     if (p.status === 'running') return acc;
-    return acc + (parseFloat(p.share) || parseFloat(p.value) * 0.8 || 0);
+    return acc + (parseFloat(p.share) || (parseFloat(p.value) * 0.8) || 0);
   }, 0);
 
   const revenueUSD = achieved - totalGroupTarget;
-  const revenueBDT = revenueUSD * 5;
+  const revenueBDT = revenueUSD * 5; 
   
   const preCarry = qCfg.preCarry || 0;
   const newCarry = qCfg.newCarry || 0;
@@ -832,19 +832,18 @@ export function copyWorkReport(btn) {
   reportDate.setDate(reportDate.getDate() - 1);
   const dateStr = reportDate.toLocaleDateString('en-GB'); 
   
-  const reportISO = reportDate.toISOString().slice(0, 10);
   const todayISO = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
   
   // User requested: "03. Today Delivered" should count projects delivered TODAY (now)
   const projectsDeliveredToday = state.projects.filter(p => p.status !== 'running' && p.deliveryDate === todayISO);
-  const reportVal = projectsDeliveredToday.reduce((acc, p) => acc + (parseFloat(p.share) || parseFloat(p.value) * 0.8 || 0), 0);
+  const reportVal = projectsDeliveredToday.reduce((acc, p) => acc + (parseFloat(p.share) || (parseFloat(p.value) * 0.8) || 0), 0);
   
   const currentMonthKey = getCurrentMonthKey();
   const currentMonthProjects = state.projects.filter(p => p.status !== 'running' && p.deliveryDate?.startsWith(currentMonthKey));
-  const currentMonthVal = currentMonthProjects.reduce((acc, p) => acc + (parseFloat(p.share) || parseFloat(p.value) * 0.8 || 0), 0);
+  const currentMonthVal = currentMonthProjects.reduce((acc, p) => acc + (parseFloat(p.share) || (parseFloat(p.value) * 0.8) || 0), 0);
   
   const running = state.projects.filter(p => p.status === 'running');
-  const workloadVal = running.reduce((acc, p) => acc + (parseFloat(p.value) * 0.8 || 0), 0);
+  const workloadVal = running.reduce((acc, p) => acc + (parseFloat(p.share) || (parseFloat(p.value) * 0.8) || 0), 0);
 
   let text = `Daily Work Report\n\nDate: ${dateStr}\n\n01. In Time: ${inTime}\n\n02. Issue Sheet Status: ${issue}\n\n03. Today Delivered: $${reportVal.toFixed(0)}\n\n04. Delivered Till Now: $${currentMonthVal.toFixed(0)}\n\n05. Workload in Hand: $${workloadVal.toFixed(0)}\n\n06. Number of projects: ${String(running.length).padStart(2, '0')}\n\n07. Progress Sheet Status: ${progress}`;
   
